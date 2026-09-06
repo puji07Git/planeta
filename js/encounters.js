@@ -2,6 +2,7 @@
 // under game.enc, drifts in when approaching, drifts out when over, and exposes the numbers the
 // core loop reads (gravity sources, orbit shape, obstacles, fog, extra rocks).
 import * as THREE from 'three';
+import { NAMES } from './journey.js';
 
 const _v = new THREE.Vector3();
 const ease = (k) => k * k * (3 - 2 * k);
@@ -32,8 +33,8 @@ function place(vis, game, dist, dir) {
   vis.home.set(Math.cos(dir) * R, Math.sin(dir) * R, 0);
 }
 
-export function createEncounter(game, id, intensity, level, rng) {
-  const vis = { id, intensity, level, group: new THREE.Group(), k: 0, target: 1, home: new THREE.Vector3(), dir: rng() * Math.PI * 2, t: 0, alive: true };
+export function createEncounter(game, id, intensity, level, rng, variant = 0) {
+  const vis = { id, intensity, level, variant, group: new THREE.Group(), k: 0, target: 1, home: new THREE.Vector3(), dir: rng() * Math.PI * 2, t: 0, alive: true };
   game.enc.add(vis.group);
   const I = intensity;
   switch (id) {
@@ -52,8 +53,9 @@ export function createEncounter(game, id, intensity, level, rng) {
       break;
     }
     case 'planetx': {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshStandardMaterial({ color: 0xd8432f, roughness: 0.8, emissive: 0x3a0800, emissiveIntensity: 0.6 }));
-      const halo = glow(0xff5a3c, 0.35); halo.scale.setScalar(3.2);
+      const col = (NAMES.planetx[variant % NAMES.planetx.length] || {}).color || 0xd8432f;
+      const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshStandardMaterial({ color: col, roughness: 0.8, emissive: col, emissiveIntensity: 0.25 }));
+      const halo = glow(col, 0.35); halo.scale.setScalar(3.2);
       vis.group.add(halo, m); vis.body = m; vis.ecc = Math.min(0.5, 0.28 * I); vis.dist = 2.2;
       break;
     }

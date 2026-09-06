@@ -65,7 +65,12 @@ Toc, clic o **espai** per llançar. **Enter** per tornar-hi a la pantalla final.
 - **Gravetat** de lluna i forat negre: el vol s'alenteix, la roca deixa una estela per veure la corba, i si la corba l'allunya del planeta es perd ("capturada").
 - **Pausa** (botó ⏸): continuar o tornar al menú. **Estadístiques** amb totals de roques especials, trobades superades i targetes.
 - **Actualitzacions**: indicador ↻ i avís quan hi ha versió nova (s'instal·la en tornar al menú) i avís "Joc actualitzat" després.
-- Codi: `js/journey.js` (generador, roques especials, targetes), `js/encounters.js` (visuals i regles de cada trobada), `js/music.js`, integrat a `js/game.js`.
+- **Noms reals**: cada repetició d'una trobada és un cos real (Mart, Neptú, Venus…; Lluna, Europa, Tità…; Sol, Sírius…; Halley…; Perseids…; Orió…; Sagitari A*…), amb el seu color en el cas dels planetes (`NAMES` a `js/journey.js`).
+- **Sense decoració**: el creixement es mostra pel cel de fons, l'halo d'atmosfera subtil i el nom d'etapa; els anells i el satèl·lit de les 60/100 roques s'han tret.
+- **Música per trobada**: cada trobada té estil propi (vidre, cordes, arpegis, campanes, bordó…) i quan n'hi ha diverses només sona la de més pes.
+- **Explosiva**: mai pot trencar el planeta (l'equilibri queda com a màxim al 85%).
+- **Guia** al menú amb roques especials, trobades i targetes.
+- Codi: `js/journey.js` (generador, roques especials, targetes, noms), `js/encounters.js` (visuals i regles de cada trobada), `js/music.js`, integrat a `js/game.js`.
 - **App Android a pantalla completa**: el fitxer `.well-known/assetlinks.json` ha de ser a l'arrel del domini (repositori `puji07Git/puji07git.github.io`), no dins de `/planeta/`; conté les empremtes de PLANETA i PINÇA.
 
 ## Publicació i app Android

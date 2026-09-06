@@ -5,19 +5,20 @@ const N = { C: 0, Db: 1, D: 2, Eb: 3, E: 4, F: 5, Gb: 6, G: 7, Ab: 8, A: 9, Bb: 
 const hz = (semi, octave) => 440 * Math.pow(2, (semi - 9) / 12 + (octave - 4));
 
 // Chords as [root semitone, intervals]; progressions loop.
+// style: organ | glass | strings | bright | chimes | pulse | wash | drone | rhythm
 const MOODS = {
-  menu:      { chords: [['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 11]], ['C', [0, 4, 7, 12]], ['G', [0, 4, 7, 14]]], every: 9, cutoff: 1400, bells: 6, sub: 0.18, bright: 0.5 },
-  calm:      { chords: [['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 11]], ['C', [0, 4, 7, 12]], ['E', [0, 3, 7, 10]]], every: 9, cutoff: 1500, bells: 5, sub: 0.2, bright: 0.55 },
-  moon:      { chords: [['A', [0, 3, 7, 14]], ['D', [0, 3, 7, 12]], ['F', [0, 4, 7, 11]], ['E', [0, 3, 7, 12]]], every: 11, cutoff: 900, bells: 7, sub: 0.2, bright: 0.35 },
-  planetx:   { chords: [['D', [0, 3, 7, 10]], ['Bb', [0, 4, 7, 11]], ['F', [0, 4, 7, 12]], ['C', [0, 4, 7, 10]]], every: 9, cutoff: 1100, bells: 8, sub: 0.25, bright: 0.4 },
-  star:      { chords: [['C', [0, 4, 7, 12]], ['G', [0, 4, 7, 14]], ['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 12]]], every: 7, cutoff: 3200, bells: 3, sub: 0.15, bright: 0.9 },
-  ring:      { chords: [['E', [0, 3, 7, 12]], ['C', [0, 4, 7, 11]], ['G', [0, 4, 7, 12]], ['D', [0, 4, 7, 14]]], every: 8, cutoff: 2000, bells: 2.5, sub: 0.15, bright: 0.7 },
-  comet:     { chords: [['C', [0, 4, 7, 12]], ['D', [0, 4, 7, 12]], ['A', [0, 3, 7, 12]], ['G', [0, 4, 7, 12]]], every: 6, cutoff: 2600, bells: 2, sub: 0.15, bright: 0.85 },
-  shower:    { chords: [['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 12]], ['G', [0, 4, 7, 12]], ['E', [0, 3, 7, 10]]], every: 7, cutoff: 1600, bells: 1.5, sub: 0.2, bright: 0.6 },
-  nebula:    { chords: [['A', [0, 3, 7, 12]], ['D', [0, 3, 7, 10]]], every: 14, cutoff: 420, bells: 12, sub: 0.22, bright: 0.2 },
-  belt:      { chords: [['A', [0, 3, 7, 12]], ['G', [0, 3, 7, 12]], ['F', [0, 4, 7, 12]], ['E', [0, 4, 7, 12]]], every: 8, cutoff: 1300, bells: 4, sub: 0.25, bright: 0.5, tremolo: 2.2 },
-  blackhole: { chords: [['A', [0, 3, 7, 12]], ['Bb', [0, 4, 7, 11]], ['A', [0, 1, 7, 12]], ['F', [0, 3, 7, 10]]], every: 14, cutoff: 520, bells: 16, sub: 0.4, bright: 0.15 },
-  over:      { chords: [['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 11]]], every: 12, cutoff: 700, bells: 20, sub: 0.15, bright: 0.25 },
+  menu:      { style: 'organ',   chords: [['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 11]], ['C', [0, 4, 7, 12]], ['G', [0, 4, 7, 14]]], every: 9, cutoff: 1400, bells: 6, sub: 0.18, bright: 0.5 },
+  calm:      { style: 'organ',   chords: [['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 11]], ['C', [0, 4, 7, 12]], ['E', [0, 3, 7, 10]]], every: 9, cutoff: 1500, bells: 5, sub: 0.2, bright: 0.55 },
+  moon:      { style: 'glass',   chords: [['A', [0, 3, 7, 14]], ['D', [0, 3, 7, 12]], ['F', [0, 4, 7, 11]], ['E', [0, 3, 7, 12]]], every: 11, cutoff: 2400, bells: 4, sub: 0.12, bright: 0.45, arp: 1.6 },
+  planetx:   { style: 'strings', chords: [['D', [0, 3, 7, 10]], ['Bb', [0, 4, 7, 11]], ['F', [0, 4, 7, 12]], ['C', [0, 4, 7, 10]]], every: 10, cutoff: 1100, bells: 9, sub: 0.25, bright: 0.4 },
+  star:      { style: 'bright',  chords: [['C', [0, 4, 7, 12]], ['G', [0, 4, 7, 14]], ['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 12]]], every: 7, cutoff: 3200, bells: 3, sub: 0.15, bright: 0.9, arp: 0.5 },
+  ring:      { style: 'chimes',  chords: [['E', [0, 3, 7, 12]], ['C', [0, 4, 7, 11]], ['G', [0, 4, 7, 12]], ['D', [0, 4, 7, 14]]], every: 8, cutoff: 2200, bells: 30, sub: 0.15, bright: 0.7, arp: 0.34 },
+  comet:     { style: 'pulse',   chords: [['C', [0, 4, 7, 12]], ['D', [0, 4, 7, 12]], ['A', [0, 3, 7, 12]], ['G', [0, 4, 7, 12]]], every: 6, cutoff: 2600, bells: 30, sub: 0.15, bright: 0.85, arp: 0.25 },
+  shower:    { style: 'rhythm',  chords: [['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 12]], ['G', [0, 4, 7, 12]], ['E', [0, 3, 7, 10]]], every: 7, cutoff: 1600, bells: 1.5, sub: 0.2, bright: 0.6, tremolo: 4.5 },
+  nebula:    { style: 'wash',    chords: [['A', [0, 3, 7, 12]], ['D', [0, 3, 7, 10]]], every: 14, cutoff: 420, bells: 12, sub: 0.22, bright: 0.2 },
+  belt:      { style: 'rhythm',  chords: [['A', [0, 3, 7, 12]], ['G', [0, 3, 7, 12]], ['F', [0, 4, 7, 12]], ['E', [0, 4, 7, 12]]], every: 8, cutoff: 1300, bells: 4, sub: 0.3, bright: 0.5, tremolo: 2.2 },
+  blackhole: { style: 'drone',   chords: [['A', [0, 3, 7, 12]], ['Bb', [0, 4, 7, 11]], ['A', [0, 1, 7, 12]], ['F', [0, 3, 7, 10]]], every: 14, cutoff: 480, bells: 16, sub: 0.45, bright: 0.15 },
+  over:      { style: 'organ',   chords: [['A', [0, 3, 7, 12]], ['F', [0, 4, 7, 11]]], every: 12, cutoff: 700, bells: 20, sub: 0.15, bright: 0.25 },
 };
 const PRIORITY = ['blackhole', 'nebula', 'star', 'planetx', 'moon', 'belt', 'ring', 'comet', 'shower'];
 
@@ -97,8 +98,11 @@ export class Music {
     if (mood === this.mood) return;
     this.mood = mood;
     if (!this.running) return;
-    this.chordIdx = -1;
+    this.chordIdx = -1; this.nextArpAt = 0;
     this._nextChord(true);
+    const t = this.ctx.currentTime;
+    this.out.gain.cancelScheduledValues(t); this.out.gain.setValueAtTime(this.out.gain.value, t);
+    this.out.gain.linearRampToValueAtTime(0.2, t + 0.8); this.out.gain.linearRampToValueAtTime(0.42, t + 3);
   }
 
   _tick() {
@@ -107,6 +111,25 @@ export class Music {
     const now = this.ctx.currentTime;
     if (now >= this.nextChordAt) this._nextChord();
     if (now >= this.nextBellAt) { this._bell(); this.nextBellAt = now + m.bells * (0.5 + Math.random()); }
+    if (m.arp) {
+      if (!this.nextArpAt || now >= this.nextArpAt) {
+        this.arpIdx = ((this.arpIdx || 0) + 1) % 8;
+        const pattern = [0, 1, 2, 3, 2, 1, 3, 0];
+        this._pluck(pattern[this.arpIdx], m);
+        this.nextArpAt = (this.nextArpAt && now - this.nextArpAt < 0.5 ? this.nextArpAt : now) + m.arp;
+      }
+    }
+  }
+
+  _pluck(i, m) {
+    if (!this.chord) return;
+    const c = this.ctx, t = c.currentTime;
+    const semi = this.chord[i % this.chord.length];
+    const f = hz(semi, m.style === 'glass' ? 4 : m.style === 'chimes' ? 5 : 3);
+    const o = c.createOscillator(); o.type = m.style === 'pulse' ? 'square' : m.style === 'bright' ? 'triangle' : 'sine'; o.frequency.value = f;
+    const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(m.style === 'pulse' ? 0.05 : 0.09, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + (m.style === 'chimes' ? 2.2 : 0.9));
+    o.connect(g); g.connect(this.filter); g.connect(this.reverb);
+    o.start(); o.stop(t + 2.3);
   }
 
   _nextChord(sudden = false) {
@@ -138,9 +161,21 @@ export class Music {
 
   _voice(freq, m, attack, i) {
     const c = this.ctx, t = c.currentTime;
-    const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.11, t + attack);
+    const STYLES = {
+      organ:   { mix: [['sawtooth', -6, 0.35], ['sawtooth', 6, 0.35], ['triangle', 0, 0.8], ['sine', 0, 0.5]], vol: 0.11 },
+      glass:   { mix: [['sine', 0, 0.9], ['triangle', 3, 0.35], ['sine', 1200, 0.15]], vol: 0.1 },
+      strings: { mix: [['sawtooth', -12, 0.4], ['sawtooth', 12, 0.4], ['sawtooth', 0, 0.3]], vol: 0.07 },
+      bright:  { mix: [['triangle', -4, 0.7], ['triangle', 4, 0.7], ['square', 0, 0.12]], vol: 0.1 },
+      chimes:  { mix: [['sine', 0, 0.8], ['sine', 700, 0.2]], vol: 0.06 },
+      pulse:   { mix: [['square', -3, 0.25], ['triangle', 3, 0.6]], vol: 0.08 },
+      rhythm:  { mix: [['sawtooth', -5, 0.3], ['triangle', 5, 0.6]], vol: 0.1 },
+      wash:    { mix: [['sine', 0, 0.8], ['sine', 7, 0.6], ['triangle', 0, 0.3]], vol: 0.12 },
+      drone:   { mix: [['sawtooth', -9, 0.45], ['sawtooth', 9, 0.45], ['sine', 0, 0.6]], vol: 0.1 },
+    };
+    const st = STYLES[m.style] || STYLES.organ;
+    const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(st.vol, t + attack);
     const oscs = [];
-    for (const [type, det, vol] of [['sawtooth', -6, 0.35], ['sawtooth', 6, 0.35], ['triangle', 0, 0.8], ['sine', 0, 0.5]]) {
+    for (const [type, det, vol] of st.mix) {
       const o = c.createOscillator(); o.type = type; o.frequency.value = freq; o.detune.value = det + (i - 1.5) * 2;
       const og = c.createGain(); og.gain.value = vol;
       o.connect(og).connect(g); o.start(); oscs.push(o);

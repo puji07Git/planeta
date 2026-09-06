@@ -6,7 +6,7 @@ import { THEMES, themeById, rockHSL, hslToHex, stageIndex } from './themes.js';
 import { store } from './storage.js';
 import { rngFromString, todayKey, dayNumber, msUntilTomorrow, formatCountdown } from './rng.js';
 import { emojiGrid, shareText, shareFile, renderCard, downloadBlob, baseUrl } from './share.js';
-import { ENCOUNTERS, CARDS } from './journey.js';
+import { ENCOUNTERS, CARDS, NAMES, encounterName } from './journey.js';
 import { Music } from './music.js';
 
 const $ = (id) => document.getElementById(id);
@@ -122,7 +122,7 @@ const game = new Game($('c'), {
     if (phase === 'start') {
       audio.encounterJingle(Math.max(...list.map((a) => a.level)));
       haptic([15, 30, 15]);
-      showMilestone(list.map((a) => `${ENCOUNTERS[a.id].icon} ${t('enc_' + a.id)}${a.level > 1 ? ' ' + roman(a.level) : ''}`).join(' + '));
+      showMilestone(list.map((a) => `${ENCOUNTERS[a.id].icon} ${encounterName(a, getLang())}`).join(' + '));
     } else {
       store.encountersDone = store.encountersDone + list.length;
     }
@@ -169,7 +169,7 @@ function renderEncounterBar() {
   for (const v of live) {
     const d = document.createElement('div');
     d.className = 'enc' + (v.pending ? ' near' : '');
-    const name = `${t('enc_' + v.id)}${v.level > 1 ? ' ' + roman(v.level) : ''}`;
+    const name = encounterName(v, getLang());
     d.innerHTML = `<span>${ENCOUNTERS[v.id].icon}</span><span>${v.pending ? t('encNear') + ': ' : ''}${name}</span>${v.pending ? '' : `<small>· ${t('enc_' + v.id + '_hint')}</small>`}`;
     el.encounter.appendChild(d);
   }
@@ -194,7 +194,7 @@ game.reset();
 
 // ---------- Screens ----------
 function show(screen) {
-  [el.menu, el.gameover, el.themes, el.stats, el.cards, el.pause].forEach((s) => s.classList.add('hidden'));
+  [el.menu, el.gameover, el.themes, el.stats, el.cards, el.pause, $('guide')].forEach((s) => s.classList.add('hidden'));
   if (screen) screen.classList.remove('hidden');
   el.hud.classList.toggle('hidden', screen !== null && screen !== el.cards && screen !== el.pause);
   el.btnPause.classList.toggle('hidden', screen !== null);
@@ -394,6 +394,23 @@ $('btn-retry').addEventListener('click', () => { audio.click(); startGame(mode =
 $('btn-home').addEventListener('click', () => { audio.click(); goHome(); });
 $('btn-themes').addEventListener('click', () => { audio.click(); renderThemes(); show(el.themes); });
 $('btn-stats').addEventListener('click', () => { audio.click(); renderStats(); show(el.stats); });
+$('btn-guide').addEventListener('click', () => { audio.click(); renderGuide(); show($('guide')); });
+
+function renderGuide() {
+  const body = $('guide-body');
+  const lang = getLang();
+  const row = (icon, title, text) => `<div class="g"><div class="i">${icon}</div><b>${title}</b><small>${text}</small></div>`;
+  let h = `<h3>${t('guideRocks')}</h3>`;
+  for (const [k, icon] of [['heavy', '🪨'], ['ice', '🧊'], ['gold', '💰'], ['boom', '💣'], ['comet', '☄️']]) h += row(icon, t('rock_' + k).replace(/^\S+\s/, '').split(':')[0], t('g_' + k));
+  h += `<h3>${t('guideEnc')}</h3>`;
+  for (const id of Object.keys(ENCOUNTERS)) {
+    const names = (NAMES[id] || []).map((n) => n[lang] || n.en).join(' · ');
+    h += row(ENCOUNTERS[id].icon, t('enc_' + id), `${t('enc_' + id + '_hint')}<br><span style="opacity:.6">${names}</span>`);
+  }
+  h += `<h3>${t('guideCards')}</h3>`;
+  for (const c of CARDS) h += row(c.icon, t('card_' + c.id), `<span class="pro">✔ ${t('card_' + c.id + '_pro')}</span> · <span class="con">✖ ${t('card_' + c.id + '_con')}</span>`);
+  body.innerHTML = h;
+}
 document.querySelectorAll('.btn-back').forEach((b) => b.addEventListener('click', () => { audio.click(); goHome(); }));
 
 function goHome() {

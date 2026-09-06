@@ -16,6 +16,23 @@ export const ENCOUNTERS = {
   blackhole: { icon: '🕳️', easy: false, axis: 'gravity' },
   belt:      { icon: '🪨', easy: false, axis: 'obstacle' },
 };
+// Real names, one per repetition; Planet X also carries a colour per name.
+export const NAMES = {
+  moon: [{ ca: 'Lluna', es: 'Luna', en: 'Moon' }, { ca: 'Europa', es: 'Europa', en: 'Europa' }, { ca: 'Tità', es: 'Titán', en: 'Titan' }, { ca: 'Io', es: 'Ío', en: 'Io' }, { ca: 'Ganímedes', es: 'Ganímedes', en: 'Ganymede' }, { ca: 'Encèlad', es: 'Encélado', en: 'Enceladus' }],
+  planetx: [{ ca: 'Mart', es: 'Marte', en: 'Mars', color: 0xd8432f }, { ca: 'Neptú', es: 'Neptuno', en: 'Neptune', color: 0x3f63d8 }, { ca: 'Venus', es: 'Venus', en: 'Venus', color: 0xe8c87a }, { ca: 'Júpiter', es: 'Júpiter', en: 'Jupiter', color: 0xd9a066 }, { ca: 'Urà', es: 'Urano', en: 'Uranus', color: 0x7fd6e0 }, { ca: 'Saturn', es: 'Saturno', en: 'Saturn', color: 0xe6d3a0 }, { ca: 'Mercuri', es: 'Mercurio', en: 'Mercury', color: 0x9a9aa0 }],
+  star: [{ ca: 'Sol', es: 'Sol', en: 'Sun' }, { ca: 'Sírius', es: 'Sirio', en: 'Sirius' }, { ca: 'Betelgeuse', es: 'Betelgeuse', en: 'Betelgeuse' }, { ca: 'Vega', es: 'Vega', en: 'Vega' }, { ca: 'Pròxima', es: 'Próxima', en: 'Proxima' }],
+  comet: [{ ca: 'Halley', es: 'Halley', en: 'Halley' }, { ca: 'Hale-Bopp', es: 'Hale-Bopp', en: 'Hale-Bopp' }, { ca: 'Encke', es: 'Encke', en: 'Encke' }, { ca: 'NEOWISE', es: 'NEOWISE', en: 'NEOWISE' }],
+  shower: [{ ca: 'Perseids', es: 'Perseidas', en: 'Perseids' }, { ca: 'Leònids', es: 'Leónidas', en: 'Leonids' }, { ca: 'Gemínids', es: 'Gemínidas', en: 'Geminids' }, { ca: 'Quadràntids', es: 'Cuadrántidas', en: 'Quadrantids' }],
+  nebula: [{ ca: 'Nebulosa d\u2019Orió', es: 'Nebulosa de Orión', en: 'Orion Nebula' }, { ca: 'Nebulosa de Carina', es: 'Nebulosa de Carina', en: 'Carina Nebula' }, { ca: 'Nebulosa de l\u2019Àguila', es: 'Nebulosa del Águila', en: 'Eagle Nebula' }, { ca: 'Nebulosa del Cranc', es: 'Nebulosa del Cangrejo', en: 'Crab Nebula' }],
+  blackhole: [{ ca: 'Sagitari A*', es: 'Sagitario A*', en: 'Sagittarius A*' }, { ca: 'Cygnus X-1', es: 'Cygnus X-1', en: 'Cygnus X-1' }, { ca: 'M87*', es: 'M87*', en: 'M87*' }],
+  belt: [{ ca: 'Cinturó principal', es: 'Cinturón principal', en: 'Main belt' }, { ca: 'Cinturó de Kuiper', es: 'Cinturón de Kuiper', en: 'Kuiper belt' }, { ca: 'Troians', es: 'Troyanos', en: 'Trojans' }],
+  ring: [{ ca: 'Barrera de gel', es: 'Barrera de hielo', en: 'Ice barrier' }, { ca: 'Barrera de pols', es: 'Barrera de polvo', en: 'Dust barrier' }, { ca: 'Barrera de roca', es: 'Barrera de roca', en: 'Rock barrier' }],
+};
+export function encounterName(a, lang) {
+  const list = NAMES[a.id] || [];
+  const n = list[(a.variant || 0) % list.length];
+  return n ? (n[lang] || n.en) : a.id;
+}
 const IDS = Object.keys(ENCOUNTERS);
 const EASY = IDS.filter((id) => ENCOUNTERS[id].easy);
 
@@ -61,7 +78,7 @@ export class Journey {
       const active = chosen.map((id) => {
         const times = this.seen[id] || 0;
         this.seen[id] = times + 1;
-        return { id, intensity: 1 + 0.35 * times, level: times + 1 };
+        return { id, intensity: 1 + 0.35 * times, level: times + 1, variant: times % (NAMES[id] ? NAMES[id].length : 1) };
       });
       this.segments.push({ active });
     }

@@ -187,8 +187,6 @@ export class Game {
 
   _fitCamera(snap = false) {
     let E = this.orbitR + this.Rmass * 0.4;
-    if (this.stage >= 3) E = Math.max(E, this.orbitR * 1.35 + this.Rvis * 0.3);
-    if (this.stage >= 2) E = Math.max(E, Math.max(this.Rmass * 1.2, this.Rvis * 0.85) * 2.4);
     E *= 1.12;
     const tan = Math.tan((FOV / 2) * Math.PI / 180);
     this.camGoal = E / (tan * Math.min(1, this.camera.aspect)) * (this.camera.aspect < 1 ? 1.08 : 1);
@@ -453,7 +451,11 @@ export class Game {
     this.M += f.m;
     this._compact();
     this._recomputeCom();
-    if (f.kind === 'boom') { this._boom(f); this._compact(); this._recomputeCom(); }
+    if (f.kind === 'boom') {
+      this._boom(f); this._compact(); this._recomputeCom();
+      const qb = this.com.length() / (this._limit(this.score + 1) * this.Rmass);
+      if (qb > 0.85) { const k = 0.85 / qb; for (const r of this.rocks) r.lp.multiplyScalar(k); this._recomputeCom(); }
+    }
     if (f.kind === 'gold' || f.kind === 'comet') this.M += f.m;   // grows the planet twice as much
     if (!f.wild) this.score++;
     this.q = this.com.length() / (this._limit(this.score) * this.Rmass);
@@ -572,7 +574,7 @@ export class Game {
   }
 
   _startEncounter(a, pending) {
-    const v = createEncounter(this, a.id, a.intensity, a.level, this.rng);
+    const v = createEncounter(this, a.id, a.intensity, a.level, this.rng, a.variant);
     v.pending = pending;
     this.encounters.push(v);
   }
@@ -846,11 +848,10 @@ export class Game {
     // Decorations
     const stage = this.stage;
     this.atmo.scale.setScalar(Math.max(this.Rmass * 3.6, this.Rvis * 2.6));
-    this.atmoMat.opacity += ((stage >= 1 ? 0.6 : 0) - this.atmoMat.opacity) * Math.min(1, dt * 2);
+    this.atmoMat.opacity += ((stage >= 1 ? 0.28 + 0.06 * stage : 0) - this.atmoMat.opacity) * Math.min(1, dt * 2);
     this.ring.scale.setScalar(Math.max(this.Rmass * 1.2, this.Rvis * 0.85));
-    this.ringMat.opacity += ((stage >= 2 ? 0.55 : 0) - this.ringMat.opacity) * Math.min(1, dt * 2);
-    this.ring.rotation.z += dt * 0.05;
-    this.moon.visible = stage >= 3 && this.state !== 'over';
+    this.ringMat.opacity = 0;
+    this.moon.visible = false;
     if (this.moon.visible) {
       this.moonAngle += dt * 0.6;
       const mr = this.orbitR * 1.35;
