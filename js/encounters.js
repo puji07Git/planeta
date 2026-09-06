@@ -39,7 +39,7 @@ export function createEncounter(game, id, intensity, level, rng) {
   switch (id) {
     case 'moon': {
       const m = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshStandardMaterial({ color: 0xd8d8e0, roughness: 0.9 }));
-      vis.group.add(m); vis.body = m; vis.gravity = 2.2 * I; vis.dist = 1.75;
+      vis.group.add(m); vis.body = m; vis.gravity = 2.6 * I; vis.dist = 1.75;
       break;
     }
     case 'blackhole': {
@@ -72,7 +72,8 @@ export function createEncounter(game, id, intensity, level, rng) {
       vis.arcs = [];
       for (let i = 0; i < vis.gaps; i++) {
         const arcLen = (Math.PI * 2) / vis.gaps - vis.gapSize;
-        const a = new THREE.Mesh(new THREE.RingGeometry(0.94, 1.06, 40, 1, 0, arcLen), mat);
+        const a = new THREE.Mesh(new THREE.RingGeometry(0.94, 1.06, 40, 1, 0, arcLen), mat.clone());
+        a.rotation.z = i * (Math.PI * 2) / vis.gaps;
         vis.arcs.push(a); vis.group.add(a);
       }
       vis.dist = 0; vis.radius = 0.6;
@@ -120,12 +121,15 @@ export function updateEncounter(game, vis, dt) {
   if (vis.target === 0 && vis.k < 0.02) vis.alive = false;
   const k = ease(Math.max(0, Math.min(1, vis.k)));
   const R = game.orbitR;
-  const act = !vis.pending && vis.target === 1 && game.state !== 'over';   // acting on the game, not just visible
+  const act = !vis.pending && vis.target === 1 && game.state === 'playing';   // acting on the game, not just visible
+  if (vis.arrive === undefined) vis.arrive = 0;
+  vis.arrive += ((vis.pending ? 0 : 1) - vis.arrive) * Math.min(1, dt * 1.1);
+  const far = 1 - ease(vis.arrive);   // 1 = still approaching
   switch (vis.id) {
     case 'moon': case 'blackhole': case 'planetx': case 'star': {
       place(vis, game, vis.dist, vis.dir + vis.t * 0.05);
       // Drift in from far away along its own direction.
-      _v.copy(vis.home).multiplyScalar((vis.pending ? 1.6 : 1) + (1 - k) * 3);
+      _v.copy(vis.home).multiplyScalar(1 + far * 0.9 + (1 - k) * 3);
       vis.group.position.copy(_v);
       const s = vis.id === 'moon' ? Math.max(0.5, game.Rvis * 0.28) : vis.id === 'blackhole' ? Math.max(0.6, game.Rvis * 0.32)
         : vis.id === 'planetx' ? Math.max(0.7, game.Rvis * 0.42) : Math.max(0.9, game.Rvis * 0.5);
@@ -148,9 +152,9 @@ export function updateEncounter(game, vis, dt) {
     case 'ring': {
       vis.rot += vis.rotSpeed * dt;
       const r = R * vis.radius;
-      vis.group.scale.setScalar(r * (0.2 + 0.8 * k));
+      vis.group.scale.setScalar(r * (0.2 + 0.8 * k) * (1 + far * 1.6));
       vis.group.rotation.z = vis.rot;
-      for (const a of vis.arcs) a.material.opacity = 0.85 * k;
+      for (const a of vis.arcs) a.material.opacity = (0.85 - far * 0.6) * k;
       break;
     }
     case 'belt': {
@@ -159,7 +163,7 @@ export function updateEncounter(game, vis, dt) {
       for (let i = 0; i < vis.n; i++) {
         const a = vis.rot + (i / vis.n) * Math.PI * 2;
         const c = vis.stones[i];
-        c.position.set(Math.cos(a) * r * (1 + (1 - k) * 2.5), Math.sin(a) * r * (1 + (1 - k) * 2.5), 0);
+        c.position.set(Math.cos(a) * r * (1 + far * 1.4 + (1 - k) * 2.5), Math.sin(a) * r * (1 + far * 1.4 + (1 - k) * 2.5), 0);
         c.rotation.z = a; c.rotation.x += dt * 0.4;
         c.scale.setScalar(Math.max(0.35, game.Rmass * 0.55) * k);
       }
@@ -171,7 +175,7 @@ export function updateEncounter(game, vis, dt) {
       const f = Math.max(0, Math.min(1, (s - 0.1) / 0.5));
       if (act) game.fogTarget = Math.max(game.fogTarget, f * vis.maxOpacity * k);
       vis.tint.position.copy(game.planet.position);
-      vis.tint.material.opacity = 0.35 * k;
+      vis.tint.material.opacity = (0.12 + 0.23 * (1 - far)) * k;
       break;
     }
     case 'shower': {

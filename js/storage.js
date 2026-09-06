@@ -35,6 +35,12 @@ export const store = {
   set lang(v) { write('lang', v); },
   get unlockedSeen() { return read('unlockedSeen', ['nebulosa']); },
   set unlockedSeen(v) { write('unlockedSeen', v); },
+  get special() { return read('special', {}); },
+  set special(v) { write('special', v); },
+  get encountersDone() { return read('encountersDone', 0); },
+  set encountersDone(v) { write('encountersDone', v); },
+  get cardsPicked() { return read('cardsPicked', 0); },
+  set cardsPicked(v) { write('cardsPicked', v); },
   // { date, score, result:[...], streak, lastDate, best }
   get daily() { return read('daily', { date: null, score: 0, result: [], streak: 0, lastDate: null, best: 0 }); },
   set daily(v) { write('daily', v); },

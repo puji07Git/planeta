@@ -294,3 +294,21 @@ button[disabled] { opacity: 0.55; cursor: default; filter: grayscale(0.4); }
 .card-opt .con { color: #ff8a9a; font-size: 13px; }
 .go-journey { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 8px 0 2px; font-size: 13px; opacity: 0.85; }
 .go-journey span { padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,0.1); }
+
+/* ---------- v3: pause, tags, safe areas ---------- */
+#topbar { top: calc(10px + env(safe-area-inset-top, 0px)) !important; }
+#topbar button.icon, #btn-pause { width: 46px; height: 46px; font-size: 20px; }
+#btn-pause { position: absolute; left: 12px; top: calc(10px + env(safe-area-inset-top, 0px)); z-index: 5; pointer-events: auto; }
+#update-dot { position: absolute; left: 66px; top: calc(20px + env(safe-area-inset-top, 0px)); font-size: 16px; opacity: 0.7; animation: pulse 1.2s ease-in-out infinite alternate; pointer-events: none; }
+@keyframes pulse { from { opacity: 0.35; } to { opacity: 0.9; } }
+#rocktag {
+  bottom: auto !important; top: calc(170px + env(safe-area-inset-top, 0px)) !important;
+  font-size: 15px; font-weight: 800; padding: 8px 14px; background: rgba(0,0,0,0.55);
+  box-shadow: 0 0 18px rgba(255,255,255,0.15); max-width: 88vw; text-align: center;
+}
+#rocktag.boom { background: rgba(255,90,20,0.55); box-shadow: 0 0 22px rgba(255,120,40,0.6); }
+#rocktag.gold { background: rgba(255,200,60,0.4); }
+#rocktag.ice { background: rgba(80,200,255,0.35); }
+#rocktag.heavy { background: rgba(255,60,60,0.35); }
+#encounter { top: calc(132px + env(safe-area-inset-top, 0px)) !important; }
+#hud { padding-top: env(safe-area-inset-top, 0px); }

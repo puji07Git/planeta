@@ -274,6 +274,8 @@ export class Game {
   }
 
   idle() { this.state = 'idle'; this._fitCamera(); }
+  pause() { if (this.state === 'playing') this.state = 'paused'; }
+  resume() { if (this.state === 'paused') { this.state = 'playing'; this.inputLockUntil = performance.now() + 300; } }
 
   // ---------- Mechanics ----------
   _spawn() {
@@ -290,6 +292,14 @@ export class Game {
     this._fitCamera();
   }
 
+  _halo(kind) {
+    const colors = { heavy: 0xff3b3b, ice: 0x7fe6ff, gold: 0xffd24a, boom: 0xff7a1a, comet: 0xffffff };
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.heavy.material.map, color: colors[kind] || 0xffffff, transparent: true, opacity: 0.85, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
+    s.scale.setScalar(3.4);
+    s.userData.halo = true;
+    return s;
+  }
+
   _makeRock(i, kind) {
     let size = this.mods.size, massMul = this.mods.mass;
     if (kind === 'gold') size *= this.mods.goldSize * 0.85;
@@ -297,6 +307,7 @@ export class Game {
     if (kind === 'comet') size *= 0.8;
     const r = this.Rmass * (0.2 + this.rng() * 0.2) * size;
     const mesh = this._rockMesh(i, r, kind);
+    if (kind !== 'normal' && kind !== 'wild') mesh.add(this._halo(kind));
     this.scene.add(mesh);
     const zt = (this.rng() * 2 - 1) * 0.6 * this.Rmass;
     let omega = this._orbitSpeed(i), life = 0;
@@ -431,6 +442,7 @@ export class Game {
     if (f.kind === 'ice') this._slideIce(pos, f);
     const local = this.planet.worldToLocal(pos.clone());
     this.scene.remove(f.mesh);
+    for (const ch of f.mesh.children.slice()) if (ch.userData.halo) { f.mesh.remove(ch); ch.material.dispose(); }
     this.planet.add(f.mesh);
     f.mesh.position.copy(local);
     // `lp` is the landing position: the torque a rock contributes is fixed at impact, so the
@@ -540,7 +552,9 @@ export class Game {
   // ---------- Journey ----------
   _journeyEvent(ev) {
     if (ev.type === 'approach') {
-      for (const a of ev.segment.active) if (!this.encounters.some((v) => v.id === a.id && v.pending)) this._startEncounter(a, true);
+      let fresh = false;
+      for (const a of ev.segment.active) if (!this.encounters.some((v) => v.id === a.id && v.pending)) { this._startEncounter(a, true); fresh = true; }
+      if (fresh) this.hooks.onApproach && this.hooks.onApproach(ev.segment.active);
     } else if (ev.type === 'start') {
       for (const a of ev.segment.active) {
         const v = this.encounters.find((x) => x.id === a.id && x.pending);
@@ -592,6 +606,14 @@ export class Game {
     this.hooks.onCardChosen && this.hooks.onCardChosen(id);
   }
 
+  _trail(f) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.heavy.material.map, color: f.mesh.material.emissive && f.mesh.material.emissiveIntensity > 0.3 ? f.mesh.material.emissive : 0xffffff, transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending }));
+    s.position.copy(f.mesh.position);
+    s.scale.setScalar(f.r * 1.6);
+    this.scene.add(s);
+    this.fx.push({ kind: 'trail', mesh: s, t: 0, life: 0.35 });
+  }
+
   // Ring: the rock bounces back to the orbit and gets another lap.
   _bounce(f, ang) {
     if (this.flying === f) this.flying = null;
@@ -604,20 +626,26 @@ export class Game {
   }
 
   // Belt: the rock is lost against an asteroid.
-  _smash(f) {
+  _smash(f, captured = false) {
     if (this.flying === f) this.flying = null;
+    if (f.wild) { this._dispose(f.mesh); return; }
     this._burst(f.mesh.position, f.mesh.material.color, f.r);
     this._dispose(f.mesh);
     this.combo = 0;
     this.shake = Math.max(this.shake, 0.2);
-    this.hooks.onSmash && this.hooks.onSmash();
+    this.hooks.onSmash && this.hooks.onSmash(captured);
   }
 
   // One flight step for a launched or wild rock; returns true when the rock is gone (landed,
   // bounced or smashed).
   _flyStep(f, dt) {
-    const step = (FLY_SPEED * (0.6 + 0.4 * this.Rmass) * dt) / 4;
     const grav = gravitySources(this.encounters.filter((v) => !v.pending));
+    const step = (FLY_SPEED * (grav.length ? 0.7 : 1) * (0.6 + 0.4 * this.Rmass) * dt) / 4;
+    f.trailT = (f.trailT || 0) + dt;
+    if (f.trailT > 0.02) { f.trailT = 0; this._trail(f); }
+    // A rock bent away from the planet is lost (captured by whatever pulled it).
+    f.flyT = (f.flyT || 0) + dt;
+    if (f.flyT > 1.6 || f.mesh.position.length() > this.orbitR * 1.5) { this._smash(f, true); return true; }
     const sw = f.magnet ? this._sweetAngle() : null;
     for (let s = 0; s < 4; s++) {
       for (const g of grav) {
@@ -745,6 +773,7 @@ export class Game {
         if (!r) continue;
         r.mesh.rotation.x += dt * 0.8; r.mesh.rotation.y += dt * 1.1;
         if (r.kind === 'boom') r.mesh.material.emissiveIntensity = 0.6 + 0.4 * Math.sin(this.time * 9);
+        for (const ch of r.mesh.children) if (ch.userData.halo) { ch.scale.setScalar(3.0 + 0.7 * Math.sin(this.time * 5)); ch.material.opacity = 0.6 + 0.3 * Math.sin(this.time * 5); }
       }
       if (this.incoming.life) {
         this.incoming.life -= dt;
@@ -800,6 +829,12 @@ export class Game {
         this.sweet.scale.setScalar(this.Rvis * 0.6 * (2 - pulse));
         this.sweet.material.opacity = (q > 0.08 ? 0.95 : 0.7) * (playing ? 1 : 0) * (1 - this.glare);
         this.heavy.material.opacity *= (1 - this.glare);
+        if (playing && this.incoming && this.incoming.kind === 'boom') {
+          // Explosives go to the heavy side: make the red point the obvious target.
+          this.heavy.scale.setScalar(this.Rvis * (1.1 + 0.25 * Math.sin(this.time * 8)));
+          this.heavy.material.opacity = 1;
+          this.sweet.material.opacity *= 0.2;
+        }
       } else {
         this.planet.position.set(0, 0, 0);
         this.heavy.material.opacity = 0;
@@ -837,6 +872,10 @@ export class Game {
         const s = f.base * (1 + 0.45 * Math.sin(k * Math.PI));
         f.mesh.scale.setScalar(s);
         if (k >= 1) { f.mesh.scale.setScalar(f.base); this.fx.splice(i, 1); }
+      } else if (f.kind === 'trail') {
+        f.mesh.material.opacity = 0.45 * (1 - k);
+        f.mesh.scale.multiplyScalar(1 - dt * 1.5);
+        if (k >= 1) { this._dispose(f.mesh); this.fx.splice(i, 1); }
       } else {
         f.mesh.position.addScaledVector(f.vel, dt);
         f.vel.multiplyScalar(1 - dt * 2);

@@ -43,6 +43,8 @@
       <div id="gauge" title="Equilibri"><div id="gauge-fill"></div><span data-i18n="balance">Equilibri</span></div>
       <div id="play-hint" class="hidden"></div>
       <div id="encounter" class="hidden"></div>
+      <button id="btn-pause" class="icon" aria-label="Pause">⏸</button>
+      <div id="update-dot" class="hidden">↻</div>
       <div id="rocktag" class="hidden"></div>
       <div id="glare"></div>
     </div>
@@ -98,6 +100,15 @@
             <button id="btn-home" class="ghost" data-i18n="home">Menú</button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Pause -->
+    <section id="pause" class="screen hidden">
+      <div class="card">
+        <h2 data-i18n="pause">Pausa</h2>
+        <button id="btn-resume" class="primary big" data-i18n="resume">CONTINUA</button>
+        <button id="btn-pause-home" class="secondary big" data-i18n="toMenu">Menú</button>
       </div>
     </section>
 

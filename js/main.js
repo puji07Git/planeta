@@ -7,6 +7,7 @@ import { store } from './storage.js';
 import { rngFromString, todayKey, dayNumber, msUntilTomorrow, formatCountdown } from './rng.js';
 import { emojiGrid, shareText, shareFile, renderCard, downloadBlob, baseUrl } from './share.js';
 import { ENCOUNTERS, CARDS } from './journey.js';
+import { Music } from './music.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -19,11 +20,22 @@ const el = {
   goBest: $('go-best'), goPerfects: $('go-perfects'), goCombo: $('go-combo'), goEmoji: $('go-emoji'), goDaily: $('go-daily-info'),
   themeGrid: $('theme-grid'), statsGrid: $('stats-grid'),
   encounter: $('encounter'), rocktag: $('rocktag'), glare: $('glare'), cards: $('cards'), cardsSub: $('cards-sub'), cardsGrid: $('cards-grid'), goJourney: $('go-journey'),
+  pause: $('pause'), btnPause: $('btn-pause'), updateDot: $('update-dot'),
   btnMute: $('btn-mute'), btnLang: $('btn-lang'),
 };
 
 const audio = new AudioEngine();
 audio.muted = !!store.muted;
+const music = new Music(audio);
+// Music can only start after a user gesture; from then on it follows the scene.
+let musicWanted = 'menu';
+function musicScene(scene) {
+  musicWanted = scene;
+  if (!audio.ctx) return;
+  music.start();
+  music.setScene(scene, game ? game.encounters.filter((v) => !v.pending && v.target === 1).map((v) => v.id) : []);
+}
+['pointerdown', 'keydown'].forEach((n) => window.addEventListener(n, () => { if (audio.ensure()) musicScene(musicWanted); }, { once: true }));
 
 let theme = themeById(store.theme);
 let mode = 'endless';
@@ -89,28 +101,33 @@ const game = new Game($('c'), {
   },
   onFail(result) {
     lastResult = result;
-    stopAmbients();
+    musicScene('over');
     showGameOver(result);
   },
   onSpawn(kind) {
     if (kind === 'normal' || kind === 'wild') { el.rocktag.classList.add('hidden'); return; }
     el.rocktag.textContent = t('rock_' + kind);
-    el.rocktag.classList.remove('hidden');
+    el.rocktag.className = kind;
+    const sp = store.special; sp[kind] = (sp[kind] || 0) + 1; store.special = sp;
     el.rocktag.style.animation = 'none'; void el.rocktag.offsetWidth; el.rocktag.style.animation = '';
     audio.special(kind);
     clearTimeout(onSpawnTimer);
-    onSpawnTimer = setTimeout(() => el.rocktag.classList.add('hidden'), 2600);
+    onSpawnTimer = setTimeout(() => el.rocktag.classList.add('hidden'), 4000);
+  },
+  onApproach(list) {
+    renderEncounterBar();
+    audio.approach();
   },
   onEncounter(phase, list, index) {
     if (phase === 'start') {
       audio.encounterJingle(Math.max(...list.map((a) => a.level)));
       haptic([15, 30, 15]);
-      for (const a of list) startAmbient(a.id);
       showMilestone(list.map((a) => `${ENCOUNTERS[a.id].icon} ${t('enc_' + a.id)}${a.level > 1 ? ' ' + roman(a.level) : ''}`).join(' + '));
     } else {
-      for (const a of list) stopAmbient(a.id);
+      store.encountersDone = store.encountersDone + list.length;
     }
     renderEncounterBar();
+    musicScene('play');
   },
   onCards(cards, block) {
     audio.cardsOpen();
@@ -118,11 +135,11 @@ const game = new Game($('c'), {
     el.rocktag.classList.add('hidden');
     renderCards(cards, block);
   },
-  onCardChosen() { show(null); },
+  onCardChosen() { show(null); store.cardsPicked = store.cardsPicked + 1; },
   onWind() { audio.wind(); toast(t('wind'), 900); },
   onGlare() { el.glare.style.opacity = '0.55'; setTimeout(() => { el.glare.style.opacity = '0'; }, 220); },
   onBounce() { audio.bounce(); toast(t('bounce'), 800); haptic(20); },
-  onSmash() { audio.smash(); toast(t('smash'), 1000); haptic([30, 30, 30]); },
+  onSmash(captured) { audio.smash(); toast(t(captured ? 'captured' : 'smash'), 1000); haptic([30, 30, 30]); },
   onBoom(n) { audio.boom(); haptic([40, 30, 60]); if (n) toast(t('boomHit', { n }), 1200); },
   onRescue() { audio.rescue(); haptic([30, 40, 30, 40, 60]); showMilestone(t('rescue')); },
   onCompress() { toast(t('compress'), 900); },
@@ -133,14 +150,7 @@ let onSpawnTimer = 0;
 const roman = (n) => ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || String(n);
 
 // ---------- Journey UI ----------
-const ambients = new Map();
-function startAmbient(id) {
-  if (ambients.has(id)) return;
-  const h = audio.ambient(id);
-  if (h) ambients.set(id, h);
-}
-function stopAmbient(id) { const h = ambients.get(id); if (h) { h.stop(); ambients.delete(id); } }
-function stopAmbients() { for (const id of [...ambients.keys()]) stopAmbient(id); }
+function stopAmbients() { /* music follows the scene now */ }
 
 function renderEncounterBar() {
   const live = game.encounters.filter((v) => v.target === 1);
@@ -173,9 +183,10 @@ game.reset();
 
 // ---------- Screens ----------
 function show(screen) {
-  [el.menu, el.gameover, el.themes, el.stats, el.cards].forEach((s) => s.classList.add('hidden'));
+  [el.menu, el.gameover, el.themes, el.stats, el.cards, el.pause].forEach((s) => s.classList.add('hidden'));
   if (screen) screen.classList.remove('hidden');
-  el.hud.classList.toggle('hidden', screen !== null && screen !== el.cards);
+  el.hud.classList.toggle('hidden', screen !== null && screen !== el.cards && screen !== el.pause);
+  el.btnPause.classList.toggle('hidden', screen !== null);
 }
 
 function toast(msg, ms = 2200) {
@@ -248,7 +259,19 @@ function startGame(m) {
   }
   show(null);
   game.start();
+  musicScene('play');
 }
+
+// ---------- Pause ----------
+el.btnPause.addEventListener('click', () => {
+  if (game.state !== 'playing') return;
+  audio.click();
+  game.pause();
+  show(el.pause);
+  el.btnPause.classList.add('hidden');
+});
+$('btn-resume').addEventListener('click', () => { audio.click(); game.resume(); show(null); });
+$('btn-pause-home').addEventListener('click', () => { audio.click(); goHome(); });
 
 function showGameOver(r) {
   const prevBest = runStartBest;
@@ -363,7 +386,7 @@ $('btn-stats').addEventListener('click', () => { audio.click(); renderStats(); s
 document.querySelectorAll('.btn-back').forEach((b) => b.addEventListener('click', () => { audio.click(); goHome(); }));
 
 function goHome() {
-  stopAmbients();
+  musicScene('menu');
   game.reset();
   game.idle();
   refreshMenu();
@@ -442,6 +465,7 @@ function renderThemes() {
 function renderStats() {
   const games = store.games, blocks = store.blocks, perf = store.perfects;
   const d = store.daily;
+  const sp = store.special;
   const rows = [
     ['statBest', store.best],
     ['statBiggest', `${fmtKm(store.biggest || 0)} km`],
@@ -450,6 +474,12 @@ function renderStats() {
     ['statPerfect', blocks ? Math.round((perf / blocks) * 100) + '%' : '0%'],
     ['statDailyBest', d.best || 0],
     ['statStreak', d.streak || 0],
+    ['statHeavy', sp.heavy || 0],
+    ['statIce', sp.ice || 0],
+    ['statGold', sp.gold || 0],
+    ['statBoom', sp.boom || 0],
+    ['statEncounters', store.encountersDone],
+    ['statCards', store.cardsPicked],
   ];
   el.statsGrid.innerHTML = '';
   for (const [k, v] of rows) {
@@ -502,12 +532,16 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
     const check = () => reg.update().catch(() => {});
     setInterval(check, 15 * 60 * 1000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+    const watch = (w) => { if (!w) return; w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) { el.updateDot.classList.remove('hidden'); toast(t('updateReady'), 2500); } }); };
+    watch(reg.installing);
+    reg.addEventListener('updatefound', () => watch(reg.installing));
   }).catch(() => {}));
+  try { if (sessionStorage.getItem('planeta.updated')) { sessionStorage.removeItem('planeta.updated'); setTimeout(() => toast(t('updated'), 2500), 800); } } catch { /* ignore */ }
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (refreshing || !navigator.serviceWorker.controller) return;
     refreshing = true;
-    const reloadWhenIdle = () => { if (game.state === 'idle' && !el.menu.classList.contains('hidden')) location.reload(); else setTimeout(reloadWhenIdle, 2000); };
+    const reloadWhenIdle = () => { if (game.state === 'idle' && !el.menu.classList.contains('hidden')) { try { sessionStorage.setItem('planeta.updated', '1'); } catch { /* ignore */ } location.reload(); } else setTimeout(reloadWhenIdle, 2000); };
     reloadWhenIdle();
   });
 }

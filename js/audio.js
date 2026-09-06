@@ -113,6 +113,7 @@ export class AudioEngine {
     notes.forEach((f, i) => this.tone({ freq: f, type: 'triangle', dur: 0.3, vol: 0.22, delay: i * 0.08 }));
     this.noise({ dur: 0.4, vol: 0.08, cutoff: 1200, type: 'bandpass' });
   }
+  approach() { this.tone({ freq: 110, type: 'sine', dur: 1.4, vol: 0.22, slide: 90 }); this.noise({ dur: 1.2, vol: 0.08, cutoff: 300 }); }
   cardsOpen() { [523, 659, 784, 1047].forEach((f, i) => this.tone({ freq: f, type: 'sine', dur: 0.4, vol: 0.2, delay: i * 0.1 })); }
   cardPick() { this.tone({ freq: 660, type: 'triangle', dur: 0.18, vol: 0.25 }); this.tone({ freq: 990, type: 'triangle', dur: 0.25, vol: 0.18, delay: 0.09 }); }
   bounce() { this.tone({ freq: 1320, type: 'sine', dur: 0.25, vol: 0.25 }); this.tone({ freq: 1980, type: 'sine', dur: 0.35, vol: 0.12, delay: 0.02 }); }
