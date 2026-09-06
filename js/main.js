@@ -55,6 +55,7 @@ const game = new Game($('c'), {
     }
   },
   onPlace({ score, perfect, combo, q, sizeKm, cracked }) {
+    if (score > store.best) store.best = score;
     el.score.textContent = score;
     el.size.textContent = `${fmtKm(sizeKm)} km`;
     el.score.classList.remove('pop'); void el.score.offsetWidth; el.score.classList.add('pop');
@@ -138,8 +139,10 @@ refreshMenu();
 setInterval(refreshMenu, 30000);
 
 // ---------- Start / end ----------
+let runStartBest = 0;
 function startGame(m) {
   mode = m;
+  runStartBest = store.best;
   challengeBeaten = false;
   launches = 0;
   audio.ensure();
@@ -167,7 +170,7 @@ function startGame(m) {
 }
 
 function showGameOver(r) {
-  const prevBest = store.best;
+  const prevBest = runStartBest;
   const isRecord = r.score > prevBest;
   store.games = store.games + 1;
   store.blocks = store.blocks + r.score;
@@ -415,7 +418,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (refreshing || !navigator.serviceWorker.controller) return;
     refreshing = true;
-    const reloadWhenIdle = () => { if (game.state !== 'playing') location.reload(); else setTimeout(reloadWhenIdle, 2000); };
+    const reloadWhenIdle = () => { if (game.state === 'idle' && !el.menu.classList.contains('hidden')) location.reload(); else setTimeout(reloadWhenIdle, 2000); };
     reloadWhenIdle();
   });
 }
