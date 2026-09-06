@@ -332,3 +332,13 @@ button[disabled] { opacity: 0.55; cursor: default; filter: grayscale(0.4); }
 
 /* ---------- v6 ---------- */
 .guide-close { display: flex; align-items: center; justify-content: center; line-height: 1; margin: -4px -4px 0 0; }
+
+/* ---------- v7 ---------- */
+.ico svg { width: 1.35em; height: 1.35em; vertical-align: -0.3em; display: inline-block; }
+#milestone .ico svg { width: 1.1em; height: 1.1em; vertical-align: -0.15em; }
+#rocktag .ico { margin-right: 6px; }
+#boostchip {
+  position: absolute; right: 12px; top: calc(66px + env(safe-area-inset-top, 0px)); padding: 6px 10px; border-radius: 999px;
+  background: rgba(0,0,0,0.45); font-size: 12px; font-weight: 800; letter-spacing: 0.03em; pointer-events: none;
+  box-shadow: 0 0 14px rgba(255,255,255,0.25); animation: pulse 1.6s ease-in-out infinite alternate;
+}

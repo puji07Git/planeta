@@ -63,13 +63,14 @@ const game = new Game($('c'), {
   onSky(colors, stage, stageChanged) {
     el.bg.style.background = `linear-gradient(180deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
     if (stageChanged && stage > 0 && game.state === 'playing') {
-      showMilestone(t(`stageUnlock${stage}`));
+      showMilestone(t('stageMsg', { n: stage + 1, name: t('stage' + (stage + 1)) }));
       audio.milestone(true);
       haptic([20, 40, 20, 40, 40]);
     }
   },
   onPlace({ score, perfect, combo, q, sizeKm, cracked }) {
     if (score > store.best) store.best = score;
+    updateBoostChip();
     el.score.textContent = score;
     el.size.textContent = `${fmtKm(sizeKm)} km`;
     el.score.classList.remove('pop'); void el.score.offsetWidth; el.score.classList.add('pop');
@@ -106,7 +107,7 @@ const game = new Game($('c'), {
   },
   onSpawn(kind) {
     if (kind === 'normal' || kind === 'wild') { el.rocktag.classList.add('hidden'); return; }
-    el.rocktag.textContent = t('rock_' + kind);
+    el.rocktag.innerHTML = `<span class="ico">${rockSvg(kind)}</span>${t('rock_' + kind).replace(/^\S+\s/, '')}`;
     el.rocktag.className = kind;
     const sp = store.special; sp[kind] = (sp[kind] || 0) + 1; store.special = sp;
     el.rocktag.style.animation = 'none'; void el.rocktag.offsetWidth; el.rocktag.style.animation = '';
@@ -122,7 +123,7 @@ const game = new Game($('c'), {
     if (phase === 'start') {
       audio.encounterJingle(Math.max(...list.map((a) => a.level)));
       haptic([15, 30, 15]);
-      showMilestone(list.map((a) => `${ENCOUNTERS[a.id].icon} ${t('enc_' + a.id)} ${encounterName(a)}`).join(' + '));
+      showMilestone(list.map((a) => `<span class="ico">${encSvg(a.id)}</span> ${t('enc_' + a.id)} ${encounterName(a)}`).join(' + '), true);
     } else {
       store.encountersDone = store.encountersDone + list.length;
     }
@@ -135,12 +136,12 @@ const game = new Game($('c'), {
     el.rocktag.classList.add('hidden');
     renderCards(cards, rocks);
   },
-  onCardExpired() { toast(t('cardOver'), 1500); },
+  onCardExpired() { toast(t('cardOver'), 1500); updateBoostChip(); },
   onBoost(id, rocks) {
     audio.cardsOpen(); haptic([20, 30, 20]);
     store.cardsPicked = store.cardsPicked + 1;
     const c = CARDS.find((x) => x.id === id);
-    setTimeout(() => showMilestone(t('boostGot', { name: `${c ? c.icon : ''} ${t('card_' + id)}`, n: rocks })), 1500);
+    setTimeout(() => { showMilestone(t('boostGot', { name: `${c ? c.icon : ''} ${t('card_' + id)}`, n: rocks })); updateBoostChip(); }, 1500);
   },
   onSector(n) { showMilestone(t('sector', { n })); audio.milestone(true); haptic([20, 40, 20, 40, 40]); },
   onSlide() { audio.bounce(); toast(t('slide'), 900); haptic(15); },
@@ -170,6 +171,14 @@ let onSpawnTimer = 0;
 const roman = (n) => ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || String(n);
 
 // ---------- Journey UI ----------
+function updateBoostChip() {
+  const chip = $('boostchip');
+  const left = game.cardUntil - game.score;
+  if (!game.cardId || left <= 0) { chip.classList.add('hidden'); return; }
+  const c = CARDS.find((x) => x.id === game.cardId);
+  chip.innerHTML = `${c ? c.icon : ''} ${t('card_' + game.cardId)} · ${left}`;
+  chip.classList.remove('hidden');
+}
 function stopAmbients() { /* music follows the scene now */ }
 
 function renderEncounterBar() {
@@ -179,7 +188,7 @@ function renderEncounterBar() {
     const d = document.createElement('div');
     d.className = 'enc' + (v.pending ? ' near' : '');
     const name = `${t('enc_' + v.id)} ${encounterName(v)}`;
-    d.innerHTML = `<span>${ENCOUNTERS[v.id].icon}</span><span>${v.pending ? t('encNear') + ': ' : ''}${name}</span>${v.pending ? '' : `<small>· ${t('enc_' + v.id + '_hint')}</small>`}`;
+    d.innerHTML = `<span class="ico">${encSvg(v.id)}</span><span>${v.pending ? t('encNear') + ': ' : ''}${name}</span>${v.pending ? '' : `<small>· ${t('enc_' + v.id + '_hint')}</small>`}`;
     el.encounter.appendChild(d);
   }
   el.encounter.classList.toggle('hidden', !live.length);
@@ -217,9 +226,9 @@ function toast(msg, ms = 2200) {
   toast._t = setTimeout(() => el.toast.classList.add('hidden'), ms);
 }
 
-function showMilestone(text) {
+function showMilestone(text, html = false) {
   const m = el.milestone;
-  m.textContent = text;
+  if (html) m.innerHTML = text; else m.textContent = text;
   m.classList.remove('hidden');
   m.style.animation = 'none'; void m.offsetWidth; m.style.animation = '';
   clearTimeout(showMilestone._t);
@@ -434,6 +443,9 @@ function renderGuide() {
   const lang = getLang();
   const row = (icon, title, text) => `<div class="g"><div class="i">${icon}</div><b>${title}</b><small>${text}</small></div>`;
   let h = `<h3>${t('help')}</h3><div class="g" style="grid-template-columns:1fr"><small>${t('howto1')}</small></div><div class="g" style="grid-template-columns:1fr"><small>${t('howto2')}</small></div><div class="g" style="grid-template-columns:1fr"><small>${t('howto3')}</small></div>`;
+  h += `<h3>${t('guideStages')}</h3>`;
+  for (const [i, n] of [[1, 0], [2, 25], [3, 60], [4, 100]]) h += `<div class="g" style="grid-template-columns:1fr"><small><b>${t('stageMsg', { n: i, name: t('stage' + i) })}</b> · ${n} ${t('rocks')}</small></div>`;
+  h += `<div class="g" style="grid-template-columns:1fr"><small>${t('guideStagesHint')}</small></div>`;
   h += `<h3>${t('guideRocks')}</h3>`;
   for (const k of ['heavy', 'ice', 'gold', 'boom', 'comet']) h += row(rockSvg(k), t('rock_' + k).replace(/^\S+\s/, '').split(':')[0], t('g_' + k));
   h += `<h3>${t('guideEnc')}</h3>`;

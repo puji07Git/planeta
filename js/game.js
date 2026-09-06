@@ -132,9 +132,16 @@ export class Game {
     this.cardId = null; this.cardUntil = 0; this.lastCardOffer = 0;
     this.fogMat = new THREE.SpriteMaterial({ map: fogTexture(), color: 0x7f8fb8, transparent: true, opacity: 0, depthWrite: false, depthTest: false });
     this.fog = new THREE.Sprite(this.fogMat); this.fog.renderOrder = 50; this.scene.add(this.fog);
-    this.predict = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
-      new THREE.LineDashedMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, dashSize: 0.25, gapSize: 0.18 }));
-    this.predict.visible = false; this.scene.add(this.predict);
+    {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(64 * 3), 3));
+      g.setDrawRange(0, 0);
+      this.predict = new THREE.Line(g, new THREE.LineDashedMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, dashSize: 0.22, gapSize: 0.16 }));
+      this.predict.visible = false; this.scene.add(this.predict);
+    }
+    // Aura shown around the planet while a boost is active.
+    this.boostMat = new THREE.SpriteMaterial({ map: this.heavy.material.map, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending });
+    this.boostGlow = new THREE.Sprite(this.boostMat); this.boostGlow.renderOrder = -2; this.scene.add(this.boostGlow);
 
     // Stars on a far shell.
     {
@@ -697,6 +704,35 @@ export class Game {
     this.hooks.onSmash && this.hooks.onSmash(captured);
   }
 
+  // Bends a direction by the active gravity sources (and the magnet) for one sub-step.
+  _bend(pos, dir, dt, grav, sw) {
+    for (const g of grav) {
+      _w.subVectors(g.pos, pos);
+      const d = Math.max(0.5, _w.length());
+      dir.addScaledVector(_w.normalize(), (g.g * dt) * Math.min(1, 8 / d));
+    }
+    if (sw !== null) { _w.set(Math.cos(sw), Math.sin(sw), 0).multiplyScalar(this.Rvis).sub(pos); dir.addScaledVector(_w.normalize(), 5 * dt); }
+    if (grav.length || sw !== null) dir.normalize();
+  }
+
+  // Where the waiting rock would go if launched now (same physics as the flight).
+  _simulatePath(rock, out) {
+    const grav = gravitySources(this.encounters.filter((v) => !v.pending));
+    const pos = rock.mesh.position.clone();
+    const dir = new THREE.Vector3(0, 0, rock.zt).sub(pos).normalize();
+    const dt = 1 / 60;
+    const step = (FLY_SPEED * (grav.length ? 0.7 : 1) * (0.6 + 0.4 * this.Rmass) * dt) / 4;
+    let n = 0;
+    out[n++] = pos.clone();
+    for (let i = 0; i < 63 * 4 && n < 64; i++) {
+      this._bend(pos, dir, dt / 4, grav, null);
+      pos.addScaledVector(dir, step);
+      if (i % 4 === 3) out[n++] = pos.clone();
+      if (pos.length() < this.Rvis * 0.98 || pos.length() > this.orbitR * 1.5) break;
+    }
+    return n;
+  }
+
   // One flight step for a launched or wild rock; returns true when the rock is gone (landed,
   // bounced or smashed).
   _flyStep(f, dt) {
@@ -709,13 +745,7 @@ export class Game {
     if (f.flyT > 1.6 || f.mesh.position.length() > this.orbitR * 1.5) { this._smash(f, true); return true; }
     const sw = f.magnet ? this._sweetAngle() : null;
     for (let s = 0; s < 4; s++) {
-      for (const g of grav) {
-        _w.subVectors(g.pos, f.mesh.position);
-        const d = Math.max(0.5, _w.length());
-        f.dir.addScaledVector(_w.normalize(), (g.g * dt / 4) * Math.min(1, 8 / d));
-      }
-      if (sw !== null) { _w.set(Math.cos(sw), Math.sin(sw), 0).multiplyScalar(this.Rvis).sub(f.mesh.position); f.dir.addScaledVector(_w.normalize(), 5 * dt / 4); }
-      if (grav.length || sw !== null) f.dir.normalize();
+      this._bend(f.mesh.position, f.dir, dt / 4, grav, sw);
       f.mesh.position.addScaledVector(f.dir, step);
       f.mesh.rotation.x += dt * 2;
       const rad = f.mesh.position.length(), ang = Math.atan2(f.mesh.position.y, f.mesh.position.x);
@@ -862,16 +892,27 @@ export class Game {
     if (this.flying) this._flyStep(this.flying, dt);
     for (let i = this.wild.length - 1; i >= 0; i--) if (this._flyStep(this.wild[i], dt)) this.wild.splice(i, 1);
 
-    // Vision card: where the waiting rock would go.
-    this.predict.visible = !!(this.mods.vision && this.incoming && playing);
+    // Predicted path: with the Vision boost, or whenever something is bending the rocks.
+    const bending = this.encounters.some((v) => v.gravity && !v.pending && v.target === 1 && v.k > 0.3);
+    this.predict.visible = !!((this.mods.vision || bending) && this.incoming && playing);
     if (this.predict.visible) {
-      const p = this.incoming.mesh.position;
+      this._pathPts = this._pathPts || [];
+      const n = this._simulatePath(this.incoming, this._pathPts);
       const pts = this.predict.geometry.attributes.position;
-      const len = Math.max(0, p.length() - this.Rvis * 0.95);
-      const d = _w.set(-p.x, -p.y, 0).normalize();
-      pts.setXYZ(0, p.x, p.y, 0); pts.setXYZ(1, p.x + d.x * len, p.y + d.y * len, 0);
+      for (let i = 0; i < n; i++) pts.setXYZ(i, this._pathPts[i].x, this._pathPts[i].y, 0);
       pts.needsUpdate = true;
+      this.predict.geometry.setDrawRange(0, n);
       this.predict.computeLineDistances();
+      this.predict.material.color.set(bending ? 0xffd166 : 0xffffff);
+    }
+    // Boost aura.
+    {
+      const on = this.cardUntil > this.score && playing;
+      const BOOST_COLORS = { slow: 0x7dffb0, big: 0xffb056, magnet: 0xff5e7e, life: 0x4dff88, double: 0xc44bd6, vision: 0x66ccff, compress: 0x9b5de5, gold: 0xffd24a, glacial: 0x7fe6ff };
+      this.boostMat.color.set(BOOST_COLORS[this.cardId] || 0xffffff);
+      this.boostMat.opacity += ((on ? 0.28 + 0.1 * Math.sin(this.time * 4) : 0) - this.boostMat.opacity) * Math.min(1, dt * 4);
+      this.boostGlow.position.copy(this.planet.position);
+      this.boostGlow.scale.setScalar(Math.max(this.Rvis * 3.4, this.Rmass * 4));
     }
 
     // Balance visuals

@@ -62,7 +62,9 @@ Toc, clic o **espai** per llançar. **Enter** per tornar-hi a la pantalla final.
 - **Música generativa** (`js/music.js`): acords llargs tipus orgue que respiren a través d'un filtre i una reverberació llarga, baix subgreu i campanes esparses; sona al menú i durant tota la partida, i cada trobada canvia els acords, la brillantor i el ritme (forat negre greu i tens, estrella brillant i major, nebulosa filtrada...).
 - **Roques especials ben visibles**: halo de color pulsant al voltant de la roca en òrbita i etiqueta a dalt (l'explosiva demana llançar-la al costat vermell i el punt vermell s'engrandeix).
 - **Aproximació**: durant les 5 roques de calma l'element es veu venir gran i translúcid, amb l'etiqueta "S'acosta" i un so greu; després es col·loca.
-- **Gravetat** de lluna i forat negre: el vol s'alenteix, la roca deixa una estela per veure la corba, i si la corba l'allunya del planeta es perd ("capturada").
+- **Gravetat** de lluna i forat negre: el vol s'alenteix, la roca deixa una estela, i mentre hi ha gravetat es dibuixa la trajectòria corbada que farà la roca des d'on és (línia daurada). Si la corba l'allunya del planeta es perd ("capturada").
+- **Millora activa**: aura de color al voltant del planeta i etiqueta amb la millora i les roques restants.
+- **Etapes**: el missatge diu "Etapa N · Nom" i la guia les llista. Els dibuixos de la guia són els mateixos que surten al joc (barra de trobades, avisos, etiquetes de roques).
 - **Pausa** (botó ⏸): continuar o tornar al menú. **Estadístiques** amb totals de roques especials, trobades superades i targetes.
 - **Actualitzacions**: indicador ↻ i avís quan hi ha versió nova (s'instal·la en tornar al menú) i avís "Joc actualitzat" després.
 - **Noms inventats**: cada repetició d'una trobada porta un nom propi (Lluna Nyx, Planeta Kairos, Estrella Helios, Cometa Vela, Pluja Arel, Nebulosa Orel, Forat negre Umbra, Cinturó Dast, Barrera Ilse…), amb color propi en el cas dels planetes (`NAMES` a `js/journey.js`).

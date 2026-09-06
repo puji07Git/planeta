@@ -149,6 +149,9 @@ const STRINGS = {
     enc_icering_hint: 'Si toca el gel, la roca llisca fins al forat més proper',
     boost: 'Millora',
     boostGot: '🎁 {name} · {n} roques',
+    stageMsg: 'Etapa {n} · {name}',
+    guideStages: 'Etapes de creixement',
+    guideStagesHint: 'El planeta creix amb cada roca i el cel canvia a cada etapa.',
   },
   es: {
     tagline: 'Lanza rocas. Haz crecer tu planeta. No dejes que vuelque.',
@@ -296,6 +299,9 @@ const STRINGS = {
     enc_icering_hint: 'Si toca el hielo, la roca resbala hasta el hueco más cercano',
     boost: 'Mejora',
     boostGot: '🎁 {name} · {n} rocas',
+    stageMsg: 'Etapa {n} · {name}',
+    guideStages: 'Etapas de crecimiento',
+    guideStagesHint: 'El planeta crece con cada roca y el cielo cambia en cada etapa.',
   },
   en: {
     tagline: 'Throw rocks. Grow your planet. Don\'t let it tip over.',
@@ -443,6 +449,9 @@ const STRINGS = {
     enc_icering_hint: 'On the ice the rock slides to the nearest gap',
     boost: 'Boost',
     boostGot: '🎁 {name} · {n} rocks',
+    stageMsg: 'Stage {n} · {name}',
+    guideStages: 'Growth stages',
+    guideStagesHint: 'The planet grows with every rock and the sky changes at each stage.',
   },
 };
 

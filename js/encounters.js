@@ -40,7 +40,7 @@ export function createEncounter(game, id, intensity, level, rng, variant = 0) {
   switch (id) {
     case 'moon': {
       const m = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshStandardMaterial({ color: 0xd8d8e0, roughness: 0.9 }));
-      vis.group.add(m); vis.body = m; vis.gravity = 2.6 * I; vis.dist = 1.75;
+      vis.group.add(m); vis.body = m; vis.gravity = 3.4 * I; vis.dist = 1.75;
       break;
     }
     case 'blackhole': {
@@ -49,7 +49,7 @@ export function createEncounter(game, id, intensity, level, rng, variant = 0) {
       disc.rotation.x = 1.1;
       const halo = glow(0xff7a2a, 0.5); halo.scale.setScalar(5);
       vis.group.add(halo, disc, core); vis.body = core; vis.disc = disc;
-      vis.gravity = 4.2 * I; vis.spinMul = 1 + 0.3 * I; vis.dist = 1.95;
+      vis.gravity = 5.2 * I; vis.spinMul = 1 + 0.3 * I; vis.dist = 1.95;
       break;
     }
     case 'planetx': {
