@@ -226,13 +226,23 @@ function toast(msg, ms = 2200) {
   toast._t = setTimeout(() => el.toast.classList.add('hidden'), ms);
 }
 
+// Big centre banner; several in a row are queued so none is lost.
+const milestoneQueue = [];
+let milestoneBusy = false;
 function showMilestone(text, html = false) {
+  milestoneQueue.push([text, html]);
+  if (!milestoneBusy) nextMilestone();
+}
+function nextMilestone() {
+  const item = milestoneQueue.shift();
   const m = el.milestone;
+  if (!item) { milestoneBusy = false; m.classList.add('hidden'); return; }
+  milestoneBusy = true;
+  const [text, html] = item;
   if (html) m.innerHTML = text; else m.textContent = text;
   m.classList.remove('hidden');
   m.style.animation = 'none'; void m.offsetWidth; m.style.animation = '';
-  clearTimeout(showMilestone._t);
-  showMilestone._t = setTimeout(() => m.classList.add('hidden'), 1400);
+  setTimeout(() => { m.classList.add('hidden'); setTimeout(nextMilestone, 150); }, 1400);
 }
 
 function setGauge(q) {
@@ -290,6 +300,8 @@ function startGame(m) {
   show(null);
   game.start();
   musicScene('play');
+  milestoneQueue.length = 0;
+  setTimeout(() => { if (game.state === 'playing') showMilestone(t('stageMsg', { n: 1, name: t('stage1') })); }, 400);
 }
 
 // ---------- Pause ----------
