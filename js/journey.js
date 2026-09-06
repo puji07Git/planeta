@@ -7,7 +7,7 @@
 
 export const ENCOUNTERS = {
   moon:      { icon: '🌙', easy: true,  axis: 'gravity' },
-  ring:      { icon: '💫', easy: true,  axis: 'obstacle' },
+  ring:      { icon: '⭕', easy: true,  axis: 'obstacle' },
   planetx:   { icon: '🔴', easy: true,  axis: 'orbit' },
   comet:     { icon: '☄️', easy: true,  axis: 'extra' },
   shower:    { icon: '🌠', easy: false, axis: 'extra' },

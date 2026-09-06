@@ -145,7 +145,18 @@ const game = new Game($('c'), {
   onCompress() { toast(t('compress'), 900); },
   onWild() { audio.whoosh(); },
   onWildLand(q) { audio.place(1 - q); setGauge(q); },
+  onError(e) { reportError(e); },
 });
+// Errors are shown on screen (briefly) so they can be reported instead of silently freezing.
+let lastErr = '';
+function reportError(e) {
+  const msg = String(e && (e.stack || e.message || e)).split('\n').slice(0, 2).join(' · ').slice(0, 160);
+  if (msg === lastErr) return;
+  lastErr = msg;
+  toast('⚠️ ' + msg, 6000);
+}
+window.addEventListener('error', (ev) => reportError(ev.error || ev.message));
+window.addEventListener('unhandledrejection', (ev) => reportError(ev.reason));
 let onSpawnTimer = 0;
 const roman = (n) => ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || String(n);
 

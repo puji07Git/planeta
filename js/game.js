@@ -734,7 +734,7 @@ export class Game {
     this._last = now;
     if (dt > 0.05) dt = 0.05;
     this.time += dt;
-    this.update(dt);
+    try { this.update(dt); } catch (e) { console.error(e); this.hooks.onError && this.hooks.onError(e); }
     this.renderer.render(this.scene, this.camera);
   }
 
