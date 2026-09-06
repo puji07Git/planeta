@@ -6,7 +6,7 @@ import { THEMES, themeById, rockHSL, hslToHex, stageIndex } from './themes.js';
 import { store } from './storage.js';
 import { rngFromString, todayKey, dayNumber, msUntilTomorrow, formatCountdown } from './rng.js';
 import { emojiGrid, shareText, shareFile, renderCard, downloadBlob, baseUrl } from './share.js';
-import { ENCOUNTERS, CARDS, NAMES, encounterName } from './journey.js';
+import { ENCOUNTERS, CARDS, NAMES, encounterName, CARD_ROCKS } from './journey.js';
 import { Music } from './music.js';
 
 const $ = (id) => document.getElementById(id);
@@ -122,19 +122,22 @@ const game = new Game($('c'), {
     if (phase === 'start') {
       audio.encounterJingle(Math.max(...list.map((a) => a.level)));
       haptic([15, 30, 15]);
-      showMilestone(list.map((a) => `${ENCOUNTERS[a.id].icon} ${encounterName(a, getLang())}`).join(' + '));
+      showMilestone(list.map((a) => `${ENCOUNTERS[a.id].icon} ${t('enc_' + a.id)} ${encounterName(a)}`).join(' + '));
     } else {
       store.encountersDone = store.encountersDone + list.length;
     }
     renderEncounterBar();
     musicScene('play');
   },
-  onCards(cards, block) {
+  onCards(cards, rocks) {
     audio.cardsOpen();
     haptic([20, 30, 20, 30, 20]);
     el.rocktag.classList.add('hidden');
-    renderCards(cards, block);
+    renderCards(cards, rocks);
   },
+  onCardExpired() { toast(t('cardOver'), 1500); },
+  onSector(n) { showMilestone(t('sector', { n })); audio.milestone(true); haptic([20, 40, 20, 40, 40]); },
+  onSlide() { audio.bounce(); toast(t('slide'), 900); haptic(15); },
   onCardChosen() { show(null); store.cardsPicked = store.cardsPicked + 1; },
   onWind() { audio.wind(); toast(t('wind'), 900); },
   onGlare() { el.glare.style.opacity = '0.55'; setTimeout(() => { el.glare.style.opacity = '0'; }, 220); },
@@ -169,15 +172,15 @@ function renderEncounterBar() {
   for (const v of live) {
     const d = document.createElement('div');
     d.className = 'enc' + (v.pending ? ' near' : '');
-    const name = encounterName(v, getLang());
+    const name = `${t('enc_' + v.id)} ${encounterName(v)}`;
     d.innerHTML = `<span>${ENCOUNTERS[v.id].icon}</span><span>${v.pending ? t('encNear') + ': ' : ''}${name}</span>${v.pending ? '' : `<small>· ${t('enc_' + v.id + '_hint')}</small>`}`;
     el.encounter.appendChild(d);
   }
   el.encounter.classList.toggle('hidden', !live.length);
 }
 
-function renderCards(cards, block) {
-  el.cardsSub.textContent = t('cardsSub', { n: block });
+function renderCards(cards, rocks) {
+  el.cardsSub.textContent = t('cardsSub', { n: rocks });
   el.cardsGrid.innerHTML = '';
   for (const c of cards) {
     const b = document.createElement('button');
@@ -198,6 +201,7 @@ function show(screen) {
   if (screen) screen.classList.remove('hidden');
   el.hud.classList.toggle('hidden', screen !== null && screen !== el.cards && screen !== el.pause);
   el.btnPause.classList.toggle('hidden', screen !== null);
+  $('btn-help').classList.toggle('hidden', screen !== el.menu);
 }
 
 function toast(msg, ms = 2200) {
@@ -394,18 +398,41 @@ $('btn-retry').addEventListener('click', () => { audio.click(); startGame(mode =
 $('btn-home').addEventListener('click', () => { audio.click(); goHome(); });
 $('btn-themes').addEventListener('click', () => { audio.click(); renderThemes(); show(el.themes); });
 $('btn-stats').addEventListener('click', () => { audio.click(); renderStats(); show(el.stats); });
-$('btn-guide').addEventListener('click', () => { audio.click(); renderGuide(); show($('guide')); });
+$('btn-help').addEventListener('click', () => { if (game.state === 'playing') return; audio.click(); renderGuide(); show($('guide')); });
+
+// Small drawings that match what the game shows (no emoji).
+const ROCK_COLORS = { heavy: ['#5a2a2a', '#ff3b3b'], ice: ['#c9f1ff', '#7fe6ff'], gold: ['#ffd24a', '#ffaa00'], boom: ['#2a2a30', '#ff7a1a'], comet: ['#e8fbff', '#ffffff'] };
+function rockSvg(kind) {
+  const [fill, glow] = ROCK_COLORS[kind];
+  return `<svg viewBox="0 0 40 40"><defs><radialGradient id="g${kind}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${glow}" stop-opacity=".8"/><stop offset="1" stop-color="${glow}" stop-opacity="0"/></radialGradient></defs><circle cx="20" cy="20" r="19" fill="url(#g${kind})"/><polygon points="20,7 30,11 33,21 27,31 16,32 9,24 10,13" fill="${fill}" stroke="rgba(255,255,255,.35)" stroke-width="1"/><polygon points="20,7 30,11 22,19 13,15" fill="rgba(255,255,255,.18)"/></svg>`;
+}
+function encSvg(id) {
+  const S = (inner) => `<svg viewBox="0 0 40 40">${inner}</svg>`;
+  switch (id) {
+    case 'moon': return S('<circle cx="20" cy="20" r="13" fill="#d8d8e0"/><circle cx="14" cy="16" r="3" fill="#b8b8c4"/><circle cx="25" cy="24" r="4" fill="#b8b8c4"/>');
+    case 'planetx': return S('<circle cx="20" cy="20" r="16" fill="#ff5a3c" opacity=".25"/><circle cx="20" cy="20" r="12" fill="#d8432f"/><circle cx="15" cy="15" r="4" fill="rgba(255,255,255,.2)"/>');
+    case 'star': return S('<circle cx="20" cy="20" r="18" fill="#ffd166" opacity=".35"/><circle cx="20" cy="20" r="11" fill="#fff1b0"/>');
+    case 'ring': return S('<circle cx="20" cy="20" r="14" fill="none" stroke="#e8d9ff" stroke-width="4" stroke-dasharray="20 9.3" stroke-linecap="butt"/>');
+    case 'belt': return S('<polygon points="6,22 11,14 17,18 14,26" fill="#7a7a88"/><polygon points="18,10 26,8 29,16 21,18" fill="#8a8a98"/><polygon points="24,26 32,24 34,32 26,34" fill="#6f6f7c"/>');
+    case 'shower': return S('<line x1="6" y1="8" x2="16" y2="18" stroke="#fff" stroke-width="2"/><line x1="18" y1="4" x2="30" y2="16" stroke="#fff" stroke-width="2"/><line x1="12" y1="24" x2="24" y2="36" stroke="#fff" stroke-width="2"/><circle cx="16" cy="18" r="2.5" fill="#fff"/><circle cx="30" cy="16" r="2.5" fill="#fff"/><circle cx="24" cy="36" r="2.5" fill="#fff"/>');
+    case 'comet': return S('<line x1="4" y1="34" x2="26" y2="12" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".35"/><circle cx="28" cy="11" r="6" fill="#e8fbff"/>');
+    case 'nebula': return S('<ellipse cx="20" cy="20" rx="18" ry="13" fill="#6b7fb3" opacity=".5"/><ellipse cx="17" cy="21" rx="11" ry="8" fill="#9fb0e0" opacity=".45"/>');
+    case 'blackhole': return S('<circle cx="20" cy="20" r="18" fill="#ff7a2a" opacity=".3"/><ellipse cx="20" cy="20" rx="17" ry="6" fill="none" stroke="#ff9a3c" stroke-width="3"/><circle cx="20" cy="20" r="8" fill="#000"/>');
+    default: return '';
+  }
+}
 
 function renderGuide() {
   const body = $('guide-body');
   const lang = getLang();
   const row = (icon, title, text) => `<div class="g"><div class="i">${icon}</div><b>${title}</b><small>${text}</small></div>`;
-  let h = `<h3>${t('guideRocks')}</h3>`;
-  for (const [k, icon] of [['heavy', '🪨'], ['ice', '🧊'], ['gold', '💰'], ['boom', '💣'], ['comet', '☄️']]) h += row(icon, t('rock_' + k).replace(/^\S+\s/, '').split(':')[0], t('g_' + k));
+  let h = `<h3>${t('help')}</h3><div class="g" style="grid-template-columns:1fr"><small>${t('howto1')}</small></div><div class="g" style="grid-template-columns:1fr"><small>${t('howto2')}</small></div><div class="g" style="grid-template-columns:1fr"><small>${t('howto3')}</small></div>`;
+  h += `<h3>${t('guideRocks')}</h3>`;
+  for (const k of ['heavy', 'ice', 'gold', 'boom', 'comet']) h += row(rockSvg(k), t('rock_' + k).replace(/^\S+\s/, '').split(':')[0], t('g_' + k));
   h += `<h3>${t('guideEnc')}</h3>`;
   for (const id of Object.keys(ENCOUNTERS)) {
-    const names = (NAMES[id] || []).map((n) => n[lang] || n.en).join(' · ');
-    h += row(ENCOUNTERS[id].icon, t('enc_' + id), `${t('enc_' + id + '_hint')}<br><span style="opacity:.6">${names}</span>`);
+    const names = (NAMES[id] || []).map((n) => n.n).join(' · ');
+    h += row(encSvg(id), t('enc_' + id), `${t('enc_' + id + '_hint')}<br><span style="opacity:.6">${names}</span>`);
   }
   h += `<h3>${t('guideCards')}</h3>`;
   for (const c of CARDS) h += row(c.icon, t('card_' + c.id), `<span class="pro">✔ ${t('card_' + c.id + '_pro')}</span> · <span class="con">✖ ${t('card_' + c.id + '_con')}</span>`);

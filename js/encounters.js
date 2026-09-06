@@ -226,6 +226,19 @@ export function ringBlocks(vis, a) {
   return inSeg < arcLen;   // inside an arc → blocked
 }
 
+// Where a rock hitting an arc at angle `a` slides to: the nearest gap edge (world angle).
+export function ringSlideTo(vis, a) {
+  const rel = ((a - vis.rot) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  const seg = (Math.PI * 2) / vis.gaps;
+  const segStart = rel - (rel % seg);
+  const inSeg = rel - segStart;
+  const arcLen = seg - vis.gapSize;
+  const margin = Math.min(0.12, vis.gapSize * 0.25);
+  const toStart = inSeg, toEnd = arcLen - inSeg;
+  const edge = toEnd <= toStart ? segStart + arcLen + margin : segStart - margin;
+  return vis.rot + edge;
+}
+
 // Belt test: obstacle within reach of angle `a`?
 export function beltBlocks(vis, a, extra = 0) {
   for (let i = 0; i < vis.n; i++) {

@@ -57,7 +57,7 @@ Toc, clic o **espai** per llançar. **Enter** per tornar-hi a la pantalla final.
 
 - **Roques especials** a partir de la roca 15 (8% → 30% de probabilitat): *pesada* (doble massa), *gel* (rellisca fins a 45° cap al punt verd; al costat pesat es congela i pesa un 30% més), *or* (fa créixer el planeta el doble i suma combo) i *explosiva* (fa saltar les roques del voltant on cau; l'única manera de treure pes).
 - **Trobades**: cada 25 roques (les primeres 25 són de calma) el planeta troba una cosa que aplica una regla durant 25 roques, amb 5 roques de calma entremig on es veu acostar-se la següent. Nou trobades combinables (lluna, anell, planeta X, cometa, pluja de meteorits, estrella, nebulosa, forat negre, cinturó). Les tres primeres són suaus i d'una en una; a partir de la sisena n'hi ha dues alhora, i tres a partir de la dotzena. Cada repetició torna amb més intensitat (Lluna II, III…). La seqüència surt de la llavor de la partida (al repte diari, la mateixa per a tothom). Mai anell i cinturó junts.
-- **Targetes**: al final de cada bloc de tres trobades, tres targetes a triar-ne una (avantatge + cost). S'acumulen tota la partida, màxim dues de la mateixa.
+- **Targetes = ajuda temporal**: quan l'equilibri passa del 72% el joc ofereix tres targetes (avantatge + cost) i en tries una; dura 25 roques i no s'acumula. Com a màxim una oferta cada 20 roques. Al final de cada bloc de tres trobades surt el missatge "Sector N explorat".
 - **Dificultat sense sostre**: la velocitat de gir puja ràpid fins a ~100 roques i després continua pujant lentament per sempre.
 - **Música generativa** (`js/music.js`): acords llargs tipus orgue que respiren a través d'un filtre i una reverberació llarga, baix subgreu i campanes esparses; sona al menú i durant tota la partida, i cada trobada canvia els acords, la brillantor i el ritme (forat negre greu i tens, estrella brillant i major, nebulosa filtrada...).
 - **Roques especials ben visibles**: halo de color pulsant al voltant de la roca en òrbita i etiqueta a dalt (l'explosiva demana llançar-la al costat vermell i el punt vermell s'engrandeix).
@@ -65,10 +65,13 @@ Toc, clic o **espai** per llançar. **Enter** per tornar-hi a la pantalla final.
 - **Gravetat** de lluna i forat negre: el vol s'alenteix, la roca deixa una estela per veure la corba, i si la corba l'allunya del planeta es perd ("capturada").
 - **Pausa** (botó ⏸): continuar o tornar al menú. **Estadístiques** amb totals de roques especials, trobades superades i targetes.
 - **Actualitzacions**: indicador ↻ i avís quan hi ha versió nova (s'instal·la en tornar al menú) i avís "Joc actualitzat" després.
-- **Noms reals**: cada repetició d'una trobada és un cos real (Mart, Neptú, Venus…; Lluna, Europa, Tità…; Sol, Sírius…; Halley…; Perseids…; Orió…; Sagitari A*…), amb el seu color en el cas dels planetes (`NAMES` a `js/journey.js`).
+- **Noms inventats**: cada repetició d'una trobada porta un nom propi (Lluna Nyx, Planeta Kairos, Estrella Helios, Cometa Vela, Pluja Arel, Nebulosa Orel, Forat negre Umbra, Cinturó Dast, Barrera Ilse…), amb color propi en el cas dels planetes (`NAMES` a `js/journey.js`).
 - **Sense decoració**: el creixement es mostra pel cel de fons, l'halo d'atmosfera subtil i el nom d'etapa; els anells i el satèl·lit de les 60/100 roques s'han tret.
 - **Música per trobada**: cada trobada té estil propi (vidre, cordes, arpegis, campanes, bordó…) i quan n'hi ha diverses només sona la de més pes.
-- **Explosiva**: mai pot trencar el planeta (l'equilibri queda com a màxim al 85%).
+- **Explosiva**: esclata en tocar el planeta i desapareix emportant-se les roques del voltant; mai pot trencar el planeta (equilibri màxim 85%).
+- **Barrera**: la roca que toca un arc llisca fins al forat més proper i continua (abans rebotava).
+- **Música**: transicions per fosa lenta (mai de cop); amb diverses trobades, els acords vénen de la de més pes i les altres hi afegeixen la seva capa (arpegi, tremolor, filtre, subgreu).
+- **Menú**: botó ? (com es juga + guia amb dibuixos com al joc); avisos a la part superior; sense text explicatiu al menú.
 - **Guia** al menú amb roques especials, trobades i targetes.
 - Codi: `js/journey.js` (generador, roques especials, targetes, noms), `js/encounters.js` (visuals i regles de cada trobada), `js/music.js`, integrat a `js/game.js`.
 - **App Android a pantalla completa**: el fitxer `.well-known/assetlinks.json` ha de ser a l'arrel del domini (repositori `puji07Git/puji07git.github.io`), no dins de `/planeta/`; conté les empremtes de PLANETA i PINÇA.

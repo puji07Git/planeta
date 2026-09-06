@@ -50,6 +50,7 @@
     </div>
 
     <div id="topbar">
+      <button id="btn-help" class="icon" aria-label="Help">?</button>
       <button id="btn-mute" class="icon" aria-label="Mute">🔊</button>
       <button id="btn-lang" class="icon" aria-label="Language">CA</button>
     </div>
@@ -71,11 +72,11 @@
         <div class="row">
           <button id="btn-themes" class="ghost" data-i18n="themes">Temes</button>
           <button id="btn-stats" class="ghost" data-i18n="stats">Estadístiques</button>
-          <button id="btn-guide" class="ghost" data-i18n="guide">Guia</button>
+
         </div>
       </div>
       <div class="best"><span data-i18n="best">Rècord</span> <b id="menu-best">0</b></div>
-      <p class="hint" data-i18n="howto">Cada roca s'enganxa on cau i desplaça el pes. Si el costat vermell creix massa, el planeta es trenca.</p>
+
     </section>
 
     <!-- Game over -->
@@ -124,8 +125,8 @@
 
     <section id="guide" class="screen hidden">
       <div class="card guide">
+        <button class="ghost btn-back guide-close" aria-label="Back">✕</button>
         <h2 data-i18n="guide">Guia</h2>
-        <p class="cards-sub" data-i18n="guideIntro"></p>
         <div id="guide-body"></div>
         <button class="secondary big btn-back" data-i18n="back">Enrere</button>
       </div>

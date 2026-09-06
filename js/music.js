@@ -91,32 +91,49 @@ export class Music {
     this.voices = [];
   }
 
-  // Pick the mood from the live encounters (or 'menu' / 'calm' / 'over').
+  // The chords and pad come from the weightiest encounter; the others add their own layer
+  // (arpeggio, tremolo, darker filter, deeper sub), so two encounters sound like both.
   setScene(scene, encounterIds = []) {
     let mood = scene;
     if (scene === 'play') mood = PRIORITY.find((id) => encounterIds.includes(id)) || 'calm';
-    if (mood === this.mood) return;
+    const layers = scene === 'play' ? encounterIds.filter((id) => MOODS[id]) : [];
+    const key = mood + '|' + layers.slice().sort().join(',');
+    if (key === this.sceneKey) return;
+    this.sceneKey = key;
     this.mood = mood;
+    this.layers = layers;
     if (!this.running) return;
-    this.chordIdx = -1; this.nextArpAt = 0;
+    this.chordIdx = -1;
     this._nextChord(true);
-    const t = this.ctx.currentTime;
-    this.out.gain.cancelScheduledValues(t); this.out.gain.setValueAtTime(this.out.gain.value, t);
-    this.out.gain.linearRampToValueAtTime(0.2, t + 0.8); this.out.gain.linearRampToValueAtTime(0.42, t + 3);
+  }
+
+  // Merged parameters of the current scene.
+  _mix() {
+    const base = MOODS[this.mood] || MOODS.calm;
+    const ms = (this.layers || []).map((id) => MOODS[id]);
+    return {
+      ...base,
+      cutoff: Math.min(base.cutoff, ...ms.map((m) => m.cutoff)),
+      sub: Math.max(base.sub, ...ms.map((m) => m.sub)),
+      tremolo: base.tremolo || (ms.find((m) => m.tremolo) || {}).tremolo,
+      arps: [...new Set([base, ...ms].filter((m) => m.arp).map((m) => m.style))].map((st) => [base, ...ms].find((m) => m.style === st)),
+    };
   }
 
   _tick() {
     if (!this.running) return;
-    const m = MOODS[this.mood] || MOODS.calm;
+    const m = this._mix();
     const now = this.ctx.currentTime;
     if (now >= this.nextChordAt) this._nextChord();
     if (now >= this.nextBellAt) { this._bell(); this.nextBellAt = now + m.bells * (0.5 + Math.random()); }
-    if (m.arp) {
-      if (!this.nextArpAt || now >= this.nextArpAt) {
-        this.arpIdx = ((this.arpIdx || 0) + 1) % 8;
+    this.arpState = this.arpState || {};
+    for (const am of m.arps) {
+      const st = this.arpState[am.style] || (this.arpState[am.style] = { next: 0, idx: 0 });
+      if (now >= st.next) {
+        st.idx = (st.idx + 1) % 8;
         const pattern = [0, 1, 2, 3, 2, 1, 3, 0];
-        this._pluck(pattern[this.arpIdx], m);
-        this.nextArpAt = (this.nextArpAt && now - this.nextArpAt < 0.5 ? this.nextArpAt : now) + m.arp;
+        this._pluck(pattern[st.idx], am);
+        st.next = (st.next && now - st.next < 0.5 ? st.next : now) + am.arp;
       }
     }
   }
@@ -133,19 +150,20 @@ export class Music {
   }
 
   _nextChord(sudden = false) {
-    const m = MOODS[this.mood] || MOODS.calm;
+    const m = this._mix();
     const c = this.ctx, t = c.currentTime;
     this.chordIdx = (this.chordIdx + 1) % m.chords.length;
     const [rootName, ivs] = m.chords[this.chordIdx];
     const root = N[rootName];
     this.chord = ivs.map((iv) => root + iv);
-    // Release the old voices slowly; start new ones with a long attack so chords overlap.
-    for (const v of this.voices) this._release(v, sudden ? 1.5 : 4);
+    // Release the old voices slowly; start new ones with a long attack so chords overlap. A scene
+    // change is just a slower crossfade, never a cut.
+    for (const v of this.voices) this._release(v, sudden ? 5 : 4);
     this.voices = [];
     const octave = m.bright > 0.7 ? 3 : 2;
     ivs.forEach((iv, i) => {
       const f = hz(root + iv, octave + (i === 3 ? 1 : 0));
-      this.voices.push(this._voice(f, m, sudden ? 1.2 : 3.5, i));
+      this.voices.push(this._voice(f, m, sudden ? 4 : 3.5, i));
     });
     // Sub bass follows the root.
     this.sub.frequency.setTargetAtTime(hz(root, 1), t, 0.5);
@@ -155,6 +173,7 @@ export class Music {
     this.lfoGain.gain.setTargetAtTime(m.cutoff * 0.35, t, 2);
     this.tremDepth.gain.setTargetAtTime(m.tremolo ? 0.12 : 0, t, 1);
     if (m.tremolo) this.trem.frequency.setTargetAtTime(m.tremolo, t, 0.5);
+    if (sudden) { this.subGain.gain.setTargetAtTime(m.sub, t, 3); this.filter.frequency.setTargetAtTime(m.cutoff, t, 4); }
     this.nextChordAt = t + m.every * (0.85 + Math.random() * 0.3);
     if (!this.nextBellAt) this.nextBellAt = t + 2;
   }
@@ -192,7 +211,7 @@ export class Music {
 
   _bell() {
     if (!this.chord) return;
-    const m = MOODS[this.mood] || MOODS.calm;
+    const m = this._mix();
     const c = this.ctx, t = c.currentTime;
     const semi = this.chord[Math.floor(Math.random() * this.chord.length)];
     const f = hz(semi, m.bright > 0.6 ? 5 : 4);
