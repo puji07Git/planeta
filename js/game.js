@@ -486,10 +486,12 @@ export class Game {
         const pulse = 1 + 0.12 * Math.sin(this.time * 7);
         this.heavy.position.copy(dir).multiplyScalar(this.Rvis * 1.08);
         this.heavy.scale.setScalar(this.Rvis * 0.75 * pulse);
-        this.heavy.material.opacity = Math.min(1, q * 1.3) * (playing || idle ? 1 : 0);
+        // Always readable while playing: the markers are the whole aiming aid, so they must not
+        // fade to nothing on a well-balanced planet.
+        this.heavy.material.opacity = (playing ? 0.35 + 0.65 * Math.min(1, q * 1.3) : idle ? Math.min(1, q * 1.3) : 0);
         this.sweet.position.copy(dir).multiplyScalar(-this.Rvis * 1.08);
         this.sweet.scale.setScalar(this.Rvis * 0.6 * (2 - pulse));
-        this.sweet.material.opacity = (q > 0.08 ? 0.9 : 0.25) * (playing ? 1 : 0);
+        this.sweet.material.opacity = (q > 0.08 ? 0.95 : 0.7) * (playing ? 1 : 0);
       } else {
         this.planet.position.set(0, 0, 0);
         this.heavy.material.opacity = 0;
