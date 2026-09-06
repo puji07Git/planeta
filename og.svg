@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a1a55"/>
+      <stop offset="1" stop-color="#0b0d24"/>
+    </linearGradient>
+    <radialGradient id="pl" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#ffb056"/>
+      <stop offset="0.55" stop-color="#ff5e7e"/>
+      <stop offset="1" stop-color="#7b2cbf"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g transform="translate(920 330)">
+    <ellipse rx="300" ry="80" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="26" transform="rotate(-18)"/>
+    <circle r="170" fill="url(#pl)"/>
+    <circle cx="-60" cy="-40" r="28" fill="#ff8c42" opacity="0.8"/>
+    <circle cx="60" cy="60" r="38" fill="#c44bd6" opacity="0.7"/>
+    <circle cx="50" cy="-70" r="20" fill="#ffd166" opacity="0.8"/>
+    <circle cx="230" cy="-150" r="26" fill="#e6e6f0"/>
+  </g>
+  <text x="80" y="290" font-family="Segoe UI, system-ui, sans-serif" font-size="150" font-weight="900" fill="#fff" letter-spacing="-6">PLA<tspan fill="#ffd166">NETA</tspan></text>
+  <text x="86" y="370" font-family="Segoe UI, system-ui, sans-serif" font-size="40" font-weight="600" fill="#ffffffbb">Llança roques. Fes créixer el teu planeta.</text>
+  <text x="86" y="425" font-family="Segoe UI, system-ui, sans-serif" font-size="40" font-weight="600" fill="#ffffffbb">No el deixis bolcar.</text>
+  <text x="86" y="500" font-family="Segoe UI, system-ui, sans-serif" font-size="34" font-weight="700" fill="#ffd166">🟩🟩🟨🟩🟩🟥 · Repte diari · Fins a quants km?</text>
+</svg>

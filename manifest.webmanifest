@@ -1,0 +1,39 @@
+{
+  "name": "PLANETA",
+  "short_name": "PLANETA",
+  "description": "Llança roques, fes créixer el teu planeta i no el deixis bolcar. Repte diari, un sol intent.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0d24",
+  "theme_color": "#0b0d24",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "id": "./",
+  "categories": [
+    "games"
+  ],
+  "lang": "ca"
+}

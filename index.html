@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+  <title>PLANETA</title>
+  <meta name="description" content="Llança roques, fes créixer el teu planeta i no el deixis bolcar. Un joc d'un sol toc amb repte diari.">
+  <meta name="theme-color" content="#0b0d24">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta property="og:title" content="PLANETA">
+  <meta property="og:description" content="Llança roques, fes créixer el teu planeta i no el deixis bolcar. Fins a quants km arribaràs?">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="og.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="bg"></div>
+  <canvas id="c"></canvas>
+
+  <div id="ui">
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div id="score">0</div>
+      <div id="size">1.800 km</div>
+      <div id="combo"></div>
+      <div id="target" class="hidden"></div>
+      <div id="gauge" title="Equilibri"><div id="gauge-fill"></div><span data-i18n="balance">Equilibri</span></div>
+      <div id="play-hint" class="hidden"></div>
+    </div>
+
+    <div id="topbar">
+      <button id="btn-mute" class="icon" aria-label="Mute">🔊</button>
+      <button id="btn-lang" class="icon" aria-label="Language">CA</button>
+    </div>
+
+    <!-- Menu -->
+    <section id="menu" class="screen">
+      <div class="logo">
+        <div class="logo-planet" aria-hidden="true"><i class="ring"></i><i class="ball"></i><i class="moon"></i></div>
+        <h1>PLA<span>NETA</span></h1>
+        <p class="tagline" data-i18n="tagline">Llança roques. Fes créixer el teu planeta. No el deixis bolcar.</p>
+      </div>
+      <div id="challenge" class="challenge hidden"></div>
+      <div class="menu-buttons">
+        <button id="btn-play" class="primary big"><span data-i18n="play">JUGA</span></button>
+        <button id="btn-daily" class="secondary big">
+          <span class="lbl" data-i18n="daily">REPTE DIARI</span>
+          <span id="daily-sub" class="sub"></span>
+        </button>
+        <div class="row">
+          <button id="btn-themes" class="ghost" data-i18n="themes">Temes</button>
+          <button id="btn-stats" class="ghost" data-i18n="stats">Estadístiques</button>
+        </div>
+      </div>
+      <div class="best"><span data-i18n="best">Rècord</span> <b id="menu-best">0</b></div>
+      <p class="hint" data-i18n="howto">Cada roca s'enganxa on cau i desplaça el pes. Si el costat vermell creix massa, el planeta es trenca.</p>
+    </section>
+
+    <!-- Game over -->
+    <section id="gameover" class="screen hidden">
+      <div class="card">
+        <div id="go-title" class="go-title" data-i18n="gameover">El planeta s'ha trencat</div>
+        <div id="go-record" class="go-record hidden" data-i18n="newrecord">🏆 NOU RÈCORD!</div>
+        <div class="go-score"><span id="go-score">0</span> <small data-i18n="rocks">roques</small></div>
+        <div id="go-km" class="go-km"></div>
+        <div class="go-grid">
+          <div><small data-i18n="best">Rècord</small><b id="go-best">0</b></div>
+          <div><small data-i18n="perfects">Perfectes</small><b id="go-perfects">0</b></div>
+          <div><small data-i18n="maxcombo">Combo màx.</small><b id="go-combo">0</b></div>
+        </div>
+        <div id="go-emoji" class="go-emoji"></div>
+        <div id="go-daily-info" class="go-daily hidden"></div>
+        <div class="go-actions">
+          <button id="btn-share" class="primary big" data-i18n="share">📤 COMPARTEIX</button>
+          <button id="btn-retry" class="secondary big" data-i18n="retry">TORNA-HI</button>
+          <div class="row">
+            <button id="btn-image" class="ghost" data-i18n="saveimage">Imatge</button>
+            <button id="btn-home" class="ghost" data-i18n="home">Menú</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="themes" class="screen hidden">
+      <div class="card">
+        <h2 data-i18n="themes">Temes</h2>
+        <div id="theme-grid" class="theme-grid"></div>
+        <button class="secondary big btn-back" data-i18n="back">Enrere</button>
+      </div>
+    </section>
+
+    <section id="stats" class="screen hidden">
+      <div class="card">
+        <h2 data-i18n="stats">Estadístiques</h2>
+        <div id="stats-grid" class="stats-grid"></div>
+        <button class="secondary big btn-back" data-i18n="back">Enrere</button>
+      </div>
+    </section>
+
+    <div id="toast" class="hidden"></div>
+    <div id="milestone" class="hidden"></div>
+  </div>
+
+  <noscript><div class="noscript">PLANETA needs JavaScript.</div></noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
