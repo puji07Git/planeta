@@ -57,7 +57,7 @@ Toc, clic o **espai** per llançar. **Enter** per tornar-hi a la pantalla final.
 
 - **Roques especials** a partir de la roca 15 (8% → 30% de probabilitat): *pesada* (doble massa), *gel* (rellisca fins a 45° cap al punt verd; al costat pesat es congela i pesa un 30% més), *or* (fa créixer el planeta el doble i suma combo) i *explosiva* (fa saltar les roques del voltant on cau; l'única manera de treure pes).
 - **Trobades**: cada 25 roques (les primeres 25 són de calma) el planeta troba una cosa que aplica una regla durant 25 roques, amb 5 roques de calma entremig on es veu acostar-se la següent. Nou trobades combinables (lluna, anell, planeta X, cometa, pluja de meteorits, estrella, nebulosa, forat negre, cinturó). Les tres primeres són suaus i d'una en una; a partir de la sisena n'hi ha dues alhora, i tres a partir de la dotzena. Cada repetició torna amb més intensitat (Lluna II, III…). La seqüència surt de la llavor de la partida (al repte diari, la mateixa per a tothom). Mai anell i cinturó junts.
-- **Targetes = ajuda temporal**: quan l'equilibri passa del 72% el joc ofereix tres targetes (avantatge + cost) i en tries una; dura 25 roques i no s'acumula. Com a màxim una oferta cada 20 roques. Al final de cada bloc de tres trobades surt el missatge "Sector N explorat".
+- **Millores**: en superar un sector (tres trobades) hi ha un 60% de probabilitat de rebre una millora aleatòria, sense triar i sense cost, que dura 25 roques (gir lent, roques grans, imant, segona oportunitat, òrbita doble, visió, compressió, febre de l'or, glacial). No s'acumulen.
 - **Dificultat sense sostre**: la velocitat de gir puja ràpid fins a ~100 roques i després continua pujant lentament per sempre.
 - **Música generativa** (`js/music.js`): acords llargs tipus orgue que respiren a través d'un filtre i una reverberació llarga, baix subgreu i campanes esparses; sona al menú i durant tota la partida, i cada trobada canvia els acords, la brillantor i el ritme (forat negre greu i tens, estrella brillant i major, nebulosa filtrada...).
 - **Roques especials ben visibles**: halo de color pulsant al voltant de la roca en òrbita i etiqueta a dalt (l'explosiva demana llançar-la al costat vermell i el punt vermell s'engrandeix).
@@ -69,7 +69,7 @@ Toc, clic o **espai** per llançar. **Enter** per tornar-hi a la pantalla final.
 - **Sense decoració**: el creixement es mostra pel cel de fons, l'halo d'atmosfera subtil i el nom d'etapa; els anells i el satèl·lit de les 60/100 roques s'han tret.
 - **Música per trobada**: cada trobada té estil propi (vidre, cordes, arpegis, campanes, bordó…) i quan n'hi ha diverses només sona la de més pes.
 - **Explosiva**: esclata en tocar el planeta i desapareix emportant-se les roques del voltant; mai pot trencar el planeta (equilibri màxim 85%).
-- **Barrera**: la roca que toca un arc llisca fins al forat més proper i continua (abans rebotava).
+- **Anells** (la roca que toca un arc rebota i fa una volta més) i **Anells de gel** (la roca llisca fins al forat més proper i continua). Mai coincideixen dos obstacles alhora.
 - **Música**: transicions per fosa lenta (mai de cop); amb diverses trobades, els acords vénen de la de més pes i les altres hi afegeixen la seva capa (arpegi, tremolor, filtre, subgreu).
 - **Menú**: botó ? (com es juga + guia amb dibuixos com al joc); avisos a la part superior; sense text explicatiu al menú.
 - **Guia** al menú amb roques especials, trobades i targetes.

@@ -8,6 +8,7 @@
 export const ENCOUNTERS = {
   moon:      { icon: '🌙', easy: true,  axis: 'gravity' },
   ring:      { icon: '⭕', easy: true,  axis: 'obstacle' },
+  icering:   { icon: '❄️', easy: true,  axis: 'obstacle' },
   planetx:   { icon: '🔴', easy: true,  axis: 'orbit' },
   comet:     { icon: '☄️', easy: true,  axis: 'extra' },
   shower:    { icon: '🌠', easy: false, axis: 'extra' },
@@ -27,6 +28,7 @@ export const NAMES = {
   blackhole: [{ n: 'Umbra' }, { n: 'Nihil' }, { n: 'Kor' }, { n: 'Void' }],
   belt: [{ n: 'Dast' }, { n: 'Rhel' }, { n: 'Osk' }],
   ring: [{ n: 'Ilse' }, { n: 'Vau' }, { n: 'Kesh' }],
+  icering: [{ n: 'Hael' }, { n: 'Nivea' }, { n: 'Frost' }],
 };
 // Proper name of an encounter instance (type word is added by the UI: "Lluna Nyx").
 export function encounterName(a) {
@@ -70,8 +72,7 @@ export class Journey {
       const n = this._count(idx);
       for (let i = 0; i < n; i++) {
         let cands = (unseen.length && i === 0 ? unseen : pool).filter((id) => !chosen.includes(id));
-        if (chosen.includes('ring')) cands = cands.filter((id) => id !== 'belt');
-        if (chosen.includes('belt')) cands = cands.filter((id) => id !== 'ring');
+        if (chosen.some((c) => ENCOUNTERS[c].axis === 'obstacle')) cands = cands.filter((id) => ENCOUNTERS[id].axis !== 'obstacle');
         if (!cands.length) break;
         const id = pick(this.rng, cands);
         chosen.push(id);
@@ -152,18 +153,24 @@ export function defaultMods() {
   };
 }
 
+// Boosts: a random one may arrive when a sector is cleared; benefit only, lasts CARD_ROCKS rocks.
 export const CARDS = [
-  { id: 'slow',     icon: '🐢', apply: (m) => { m.spin *= 0.8; m.limit *= 0.72; } },
-  { id: 'big',      icon: '🪨', apply: (m) => { m.size *= 1.3; m.mass *= 1.3; } },
-  { id: 'magnet',   icon: '🧲', apply: (m) => { m.magnet += 15; m.orbit *= 1.25; } },
-  { id: 'life',     icon: '💚', apply: (m) => { m.lives += 1; m.mass *= 1.1; } },
-  { id: 'double',   icon: '♊', apply: (m) => { m.doubleOrbit = true; m.orbit *= 1.3; } },
-  { id: 'vision',   icon: '👁️', apply: (m) => { m.vision = true; m.sweetWobble += 12; } },
-  { id: 'compress', icon: '🌀', apply: (m) => { m.compress += 1; m.size *= 0.8; } },
-  { id: 'pyro',     icon: '💣', apply: (m) => { m.boomRate *= 2; m.boomKmCost += 0.03; } },
-  { id: 'glacial',  icon: '🧊', apply: (m) => { m.iceRate *= 2; m.heavyRate *= 1.5; } },
-  { id: 'gold',     icon: '💰', apply: (m) => { m.goldRate *= 2; m.goldSize *= 0.5; } },
+  { id: 'slow',     icon: '🐢', apply: (m) => { m.spin *= 0.75; } },
+  { id: 'big',      icon: '🪨', apply: (m) => { m.size *= 1.3; } },
+  { id: 'magnet',   icon: '🧲', apply: (m) => { m.magnet += 15; } },
+  { id: 'life',     icon: '💚', apply: (m) => { m.lives += 1; } },
+  { id: 'double',   icon: '♊', apply: (m) => { m.doubleOrbit = true; } },
+  { id: 'vision',   icon: '👁️', apply: (m) => { m.vision = true; } },
+  { id: 'compress', icon: '🌀', apply: (m) => { m.compress += 1; } },
+  { id: 'gold',     icon: '💰', apply: (m) => { m.goldRate *= 2.5; } },
+  { id: 'glacial',  icon: '🧊', apply: (m) => { m.iceRate *= 2.5; } },
 ];
+export const BOOST_CHANCE = 0.6;
+
+export function randomBoost(rng, last) {
+  const pool = CARDS.filter((c) => c.id !== last);
+  return pool[Math.floor(rng() * pool.length)];
+}
 export const CARD_ROCKS = 25;   // a card helps for this many rocks
 
 export function offerCards(rng, chosen) {

@@ -2,7 +2,7 @@
 // centre of mass; let the heavy side grow too much and the planet tears itself apart.
 import * as THREE from 'three';
 import { rockHSL, nebulaFor, stageIndex } from './themes.js';
-import { Journey, rollRockKind, defaultMods, offerCards, applyCard, CARD_ROCKS } from './journey.js';
+import { Journey, rollRockKind, defaultMods, applyCard, CARD_ROCKS, randomBoost, BOOST_CHANCE } from './journey.js';
 import { createEncounter, updateEncounter, disposeEncounter, gravitySources, ringBlocks, ringSlideTo, beltBlocks, angDist } from './encounters.js';
 
 const R0 = 1;              // core radius
@@ -513,12 +513,19 @@ export class Game {
       this._placeIncoming();
       this.hooks.onCardExpired && this.hooks.onCardExpired();
     }
-    if (this.state === 'playing' && !this.cardUntil && this.q >= 0.72 && this.score >= 15 && this.score - this.lastCardOffer >= 20) {
-      this.lastCardOffer = this.score;
-      this.pendingCards = offerCards(this.rng, this.chosenCards);
-      this.state = 'cards';
-      this.hooks.onCards && this.hooks.onCards(this.pendingCards, CARD_ROCKS);
-    }
+  }
+
+  _grantBoost() {
+    const c = randomBoost(this.rng, this.cardId || this.chosenCards[this.chosenCards.length - 1]);
+    if (!c) return;
+    this.mods = defaultMods();
+    applyCard(this.mods, c.id);
+    if (this.mods.lives) { this.lives += this.mods.lives; this.mods.lives = 0; }
+    this.cardId = c.id; this.cardUntil = this.score + CARD_ROCKS;
+    this.chosenCards.push(c.id);
+    if (this.mods.doubleOrbit && !this.incoming2 && this.incoming) this.incoming2 = this._makeRock(this.score, 'normal');
+    this._placeIncoming();
+    this.hooks.onBoost && this.hooks.onBoost(c.id, CARD_ROCKS);
   }
 
   // Ice slides toward the green point (up to 45°); on the heavy side it freezes and weighs more.
@@ -618,6 +625,7 @@ export class Game {
       this.hooks.onEncounter && this.hooks.onEncounter('end', ev.segment.active);
     } else if (ev.type === 'sector') {
       this.hooks.onSector && this.hooks.onSector(ev.sector);
+      if (this.rng() < BOOST_CHANCE) this._grantBoost();
     }
   }
 
@@ -714,10 +722,11 @@ export class Game {
       if (!f.wild) {
         for (const v of this.encounters) {
           if (v.pending || v.target !== 1) continue;
-          if (v.id === 'ring' && !f.passedRing && rad <= this.orbitR * v.radius) {
+          if ((v.id === 'ring' || v.id === 'icering') && !f.passedRing && rad <= this.orbitR * v.radius) {
             f.passedRing = true;
             if (ringBlocks(v, ang)) {
-              // Slide along the barrier to the nearest gap, then carry on inward from there.
+              if (!v.slide) { this._bounce(f, ang); return true; }
+              // Ice: slide along the ring to the nearest gap, then carry on inward from there.
               const a2 = ringSlideTo(v, ang);
               f.mesh.position.set(Math.cos(a2) * rad, Math.sin(a2) * rad, f.mesh.position.z);
               f.dir = new THREE.Vector3(0, 0, f.zt).sub(f.mesh.position).normalize();

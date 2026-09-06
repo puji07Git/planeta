@@ -136,6 +136,12 @@ const game = new Game($('c'), {
     renderCards(cards, rocks);
   },
   onCardExpired() { toast(t('cardOver'), 1500); },
+  onBoost(id, rocks) {
+    audio.cardsOpen(); haptic([20, 30, 20]);
+    store.cardsPicked = store.cardsPicked + 1;
+    const c = CARDS.find((x) => x.id === id);
+    setTimeout(() => showMilestone(t('boostGot', { name: `${c ? c.icon : ''} ${t('card_' + id)}`, n: rocks })), 1500);
+  },
   onSector(n) { showMilestone(t('sector', { n })); audio.milestone(true); haptic([20, 40, 20, 40, 40]); },
   onSlide() { audio.bounce(); toast(t('slide'), 900); haptic(15); },
   onCardChosen() { show(null); store.cardsPicked = store.cardsPicked + 1; },
@@ -412,7 +418,8 @@ function encSvg(id) {
     case 'moon': return S('<circle cx="20" cy="20" r="13" fill="#d8d8e0"/><circle cx="14" cy="16" r="3" fill="#b8b8c4"/><circle cx="25" cy="24" r="4" fill="#b8b8c4"/>');
     case 'planetx': return S('<circle cx="20" cy="20" r="16" fill="#ff5a3c" opacity=".25"/><circle cx="20" cy="20" r="12" fill="#d8432f"/><circle cx="15" cy="15" r="4" fill="rgba(255,255,255,.2)"/>');
     case 'star': return S('<circle cx="20" cy="20" r="18" fill="#ffd166" opacity=".35"/><circle cx="20" cy="20" r="11" fill="#fff1b0"/>');
-    case 'ring': return S('<circle cx="20" cy="20" r="14" fill="none" stroke="#e8d9ff" stroke-width="4" stroke-dasharray="20 9.3" stroke-linecap="butt"/>');
+    case 'ring': return S('<circle cx="20" cy="20" r="14" fill="none" stroke="#e8c9a0" stroke-width="4" stroke-dasharray="20 9.3" stroke-linecap="butt"/>');
+    case 'icering': return S('<circle cx="20" cy="20" r="14" fill="none" stroke="#bff3ff" stroke-width="4" stroke-dasharray="20 9.3" stroke-linecap="butt"/>');
     case 'belt': return S('<polygon points="6,22 11,14 17,18 14,26" fill="#7a7a88"/><polygon points="18,10 26,8 29,16 21,18" fill="#8a8a98"/><polygon points="24,26 32,24 34,32 26,34" fill="#6f6f7c"/>');
     case 'shower': return S('<line x1="6" y1="8" x2="16" y2="18" stroke="#fff" stroke-width="2"/><line x1="18" y1="4" x2="30" y2="16" stroke="#fff" stroke-width="2"/><line x1="12" y1="24" x2="24" y2="36" stroke="#fff" stroke-width="2"/><circle cx="16" cy="18" r="2.5" fill="#fff"/><circle cx="30" cy="16" r="2.5" fill="#fff"/><circle cx="24" cy="36" r="2.5" fill="#fff"/>');
     case 'comet': return S('<line x1="4" y1="34" x2="26" y2="12" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".35"/><circle cx="28" cy="11" r="6" fill="#e8fbff"/>');
@@ -435,7 +442,7 @@ function renderGuide() {
     h += row(encSvg(id), t('enc_' + id), `${t('enc_' + id + '_hint')}<br><span style="opacity:.6">${names}</span>`);
   }
   h += `<h3>${t('guideCards')}</h3>`;
-  for (const c of CARDS) h += row(c.icon, t('card_' + c.id), `<span class="pro">✔ ${t('card_' + c.id + '_pro')}</span> · <span class="con">✖ ${t('card_' + c.id + '_con')}</span>`);
+  for (const c of CARDS) h += row(c.icon, t('card_' + c.id), `<span class="pro">${t('card_' + c.id + '_pro')}</span>`);
   body.innerHTML = h;
 }
 document.querySelectorAll('.btn-back').forEach((b) => b.addEventListener('click', () => { audio.click(); goHome(); }));

@@ -67,10 +67,12 @@ export function createEncounter(game, id, intensity, level, rng, variant = 0) {
       vis.glareEvery = Math.max(3, 7 / I); vis.glareTimer = vis.glareEvery * (0.5 + rng()); vis.glare = 0; vis.dist = 2.4;
       break;
     }
-    case 'ring': {
+    case 'ring': case 'icering': {
       // Three arcs with gaps between them; the gaps shrink with intensity and the whole ring turns.
+      // Plain rings bounce the rock back to orbit; ice rings let it slide to the nearest gap.
+      vis.slide = id === 'icering';
       vis.gaps = 3; vis.gapSize = Math.max(0.75, 1.35 / Math.sqrt(I)); vis.rot = rng() * Math.PI * 2; vis.rotSpeed = 0.25 * I * (rng() < 0.5 ? 1 : -1);   // ~65 % open at first, tighter later
-      const mat = new THREE.MeshBasicMaterial({ color: 0xe8d9ff, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false });
+      const mat = new THREE.MeshBasicMaterial({ color: vis.slide ? 0xbff3ff : 0xe8c9a0, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false });
       vis.arcs = [];
       for (let i = 0; i < vis.gaps; i++) {
         const arcLen = (Math.PI * 2) / vis.gaps - vis.gapSize;
@@ -151,7 +153,7 @@ export function updateEncounter(game, vis, dt) {
       if (vis.id === 'blackhole' && act) game.spinMul = Math.max(game.spinMul, 1 + (vis.spinMul - 1) * k);
       break;
     }
-    case 'ring': {
+    case 'ring': case 'icering': {
       vis.rot += vis.rotSpeed * dt;
       const r = R * vis.radius;
       vis.group.scale.setScalar(r * (0.2 + 0.8 * k) * (1 + far * 1.6));
