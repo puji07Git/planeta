@@ -112,21 +112,44 @@ function mixHex(a, b, t) {
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
-// Growth stages by rock count: asteroid → planetoid (atmosphere) → planet (rings) → giant (moon).
-export const STAGE_SCORES = [0, 25, 60, 100];
+// Growth stages by rock count: asteroid → planetoid → planet → giant → star → blue giant →
+// supernova → galaxy → universe (→ universe II, III… every 400 rocks).
+export const STAGE_SCORES = [0, 25, 60, 100, 150, 250, 400, 600, 900];
+export const UNIVERSE_SPAN = 400;
 
 export function stageIndex(score) {
+  if (score >= STAGE_SCORES[8]) return 8 + Math.floor((score - STAGE_SCORES[8]) / UNIVERSE_SPAN);
   let i = 0;
   while (i < STAGE_SCORES.length - 1 && score >= STAGE_SCORES[i + 1]) i++;
   return i;
 }
 
+export function stageStart(i) { return i < 8 ? STAGE_SCORES[i] : STAGE_SCORES[8] + (i - 8) * UNIVERSE_SPAN; }
+
+// Sky colours beyond the theme's four zones: star, blue giant, supernova, galaxy, universes.
+const LATE_ZONES = [
+  ['#3a2410', '#0d0703'],
+  ['#0f2f5a', '#02091a'],
+  ['#3a0a3a', '#0a0010'],
+  ['#0a0f2a', '#000000'],
+];
+const UNIVERSE_ZONES = [
+  ['#000006', '#000000'],
+  ['#08000f', '#000000'],
+  ['#000a08', '#000000'],
+  ['#0a0600', '#000000'],
+];
+export function zoneFor(theme, i) {
+  if (i < 4) return theme.zones[i];
+  if (i < 8) return LATE_ZONES[i - 4];
+  return UNIVERSE_ZONES[(i - 8) % UNIVERSE_ZONES.length];
+}
+
 export function nebulaFor(theme, score) {
-  const z = theme.zones;
   const i = stageIndex(score);
-  const from = z[i];
-  const to = z[Math.min(i + 1, z.length - 1)];
-  const span = (STAGE_SCORES[i + 1] ?? STAGE_SCORES[i] + 1) - STAGE_SCORES[i];
-  const t = Math.min(1, Math.max(0, (score - STAGE_SCORES[i]) / span));
+  const from = zoneFor(theme, i);
+  const to = zoneFor(theme, i + 1);
+  const span = stageStart(i + 1) - stageStart(i);
+  const t = Math.min(1, Math.max(0, (score - stageStart(i)) / span));
   return [mixHex(from[0], to[0], t), mixHex(from[1], to[1], t)];
 }

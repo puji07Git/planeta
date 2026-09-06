@@ -2,7 +2,13 @@
 import { Game } from './game.js';
 import { AudioEngine, haptic } from './audio.js';
 import { t, setLang, detectLang, getLang, LANGS, fmtKm } from './i18n.js';
-import { THEMES, themeById, rockHSL, hslToHex, stageIndex } from './themes.js';
+import { THEMES, themeById, rockHSL, hslToHex, stageIndex, STAGE_SCORES, UNIVERSE_SPAN } from './themes.js';
+
+// Stage names: nine, then "Univers II, III…".
+function stageName(i) {
+  if (i < 9) return t('stage' + (i + 1));
+  return `${t('stage9')} ${['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][i - 7] || (i - 7)}`;
+}
 import { store } from './storage.js';
 import { rngFromString, todayKey, dayNumber, msUntilTomorrow, formatCountdown } from './rng.js';
 import { emojiGrid, shareText, shareFile, renderCard, downloadBlob, baseUrl } from './share.js';
@@ -63,7 +69,7 @@ const game = new Game($('c'), {
   onSky(colors, stage, stageChanged) {
     el.bg.style.background = `linear-gradient(180deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
     if (stageChanged && stage > 0 && game.state === 'playing') {
-      showMilestone(t('stageMsg', { n: stage + 1, name: t('stage' + (stage + 1)) }));
+      showMilestone(t('stageMsg', { n: stage + 1, name: stageName(stage) }));
       audio.milestone(true);
       haptic([20, 40, 20, 40, 40]);
     }
@@ -148,6 +154,7 @@ const game = new Game($('c'), {
   onCardChosen() { show(null); store.cardsPicked = store.cardsPicked + 1; },
   onWind() { audio.wind(); toast(t('wind'), 900); },
   onGlare() { el.glare.style.opacity = '0.55'; setTimeout(() => { el.glare.style.opacity = '0'; }, 220); },
+  onFlash() { el.glare.style.background = '#ffe6ff'; el.glare.style.opacity = '0.95'; setTimeout(() => { el.glare.style.opacity = '0'; }, 500); setTimeout(() => { el.glare.style.background = '#fff4c2'; }, 1200); audio.crack(); haptic([30, 30, 60]); },
   onBounce() { audio.bounce(); toast(t('bounce'), 800); haptic(20); },
   onSmash(captured) { audio.smash(); toast(t(captured ? 'captured' : 'smash'), 1000); haptic([30, 30, 30]); },
   onBoom(n) { audio.boom(); haptic([40, 30, 60]); if (n) toast(t('boomHit', { n }), 1200); },
@@ -340,7 +347,7 @@ function showGameOver(r) {
   el.goTitle.textContent = mode === 'daily' ? t('dailyTitle', { day: dayNumber() }) : t('gameover');
   el.goRecord.classList.toggle('hidden', !isRecord);
   el.goScore.textContent = r.score;
-  el.goKm.textContent = `${t('sizeLabel')}: ${fmtKm(r.sizeKm)} km · ${t('stage' + (stageIndex(r.score) + 1))}`;
+  el.goKm.textContent = `${t('sizeLabel')}: ${fmtKm(r.sizeKm)} km · ${stageName(stageIndex(r.score))}`;
   el.goBest.textContent = store.best;
   el.goPerfects.textContent = r.perfects;
   el.goCombo.textContent = r.maxCombo;
@@ -387,7 +394,7 @@ async function makeCard(r) {
   return renderCard({
     title: 'PLANETA',
     score: r.score,
-    label: mode === 'daily' ? t('dailyTitle', { day: dayNumber() }) : `${t('rocks')} · ${t('stage' + (stage + 1))}`,
+    label: mode === 'daily' ? t('dailyTitle', { day: dayNumber() }) : `${t('rocks')} · ${stageName(stage)}`,
     subline: `${fmtKm(r.sizeKm)} km`,
     footer: t('shareFooter', { perfects: r.perfects, combo: r.maxCombo }),
     grid: emojiGrid(r.results, { cols: 10, maxRows: 4 }),
@@ -456,8 +463,8 @@ function renderGuide() {
   const row = (icon, title, text) => `<div class="g"><div class="i">${icon}</div><b>${title}</b><small>${text}</small></div>`;
   let h = `<h3>${t('help')}</h3><div class="g" style="grid-template-columns:1fr"><small>${t('howto1')}</small></div><div class="g" style="grid-template-columns:1fr"><small>${t('howto2')}</small></div><div class="g" style="grid-template-columns:1fr"><small>${t('howto3')}</small></div>`;
   h += `<h3>${t('guideStages')}</h3>`;
-  for (const [i, n] of [[1, 0], [2, 25], [3, 60], [4, 100]]) h += `<div class="g" style="grid-template-columns:1fr"><small><b>${t('stageMsg', { n: i, name: t('stage' + i) })}</b> · ${n} ${t('rocks')}</small></div>`;
-  h += `<div class="g" style="grid-template-columns:1fr"><small>${t('guideStagesHint')}</small></div>`;
+  for (let i = 0; i < STAGE_SCORES.length; i++) h += `<div class="g" style="grid-template-columns:1fr"><small><b>${t('stageMsg', { n: i + 1, name: stageName(i) })}</b> · ${STAGE_SCORES[i]} ${t('rocks')}<br>${t('stageF' + (i + 1))}</small></div>`;
+  h += `<div class="g" style="grid-template-columns:1fr"><small>${t('guideStagesHint', { n: UNIVERSE_SPAN })}</small></div>`;
   h += `<h3>${t('guideRocks')}</h3>`;
   for (const k of ['heavy', 'ice', 'gold', 'boom', 'comet']) h += row(rockSvg(k), t('rock_' + k).replace(/^\S+\s/, '').split(':')[0], t('g_' + k));
   h += `<h3>${t('guideEnc')}</h3>`;

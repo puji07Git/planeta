@@ -47,6 +47,44 @@ function glowTexture() {
   return new THREE.CanvasTexture(c);
 }
 
+// Cloud shell for the Planet stage (soft white blobs with alpha).
+function cloudTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 512, 256);
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * 512, y = 60 + Math.random() * 140, r = 12 + Math.random() * 30;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; return t;
+}
+
+// Horizontal bands for the Giant stage.
+function bandTexture(hex) {
+  const c = document.createElement('canvas');
+  c.width = 8; c.height = 256;
+  const ctx = c.getContext('2d');
+  const base = new THREE.Color(hex);
+  for (let y = 0; y < 256; y += 1) {
+    const k = 0.75 + 0.35 * Math.sin(y * 0.16) * Math.sin(y * 0.05 + 1.3);
+    ctx.fillStyle = '#' + base.clone().multiplyScalar(k).getHexString();
+    ctx.fillRect(0, y, 8, 1);
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+// Points in a disc / spiral / far field, for the late stages.
+function pointsCloud(n, fn, size, color) {
+  const pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const p = fn(i, n); pos[i * 3] = p[0]; pos[i * 3 + 1] = p[1]; pos[i * 3 + 2] = p[2]; }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  return new THREE.Points(g, new THREE.PointsMaterial({ color, size, sizeAttenuation: true, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+}
+
 // Soft but opaque disc for the nebula fog.
 function fogTexture() {
   const c = document.createElement('canvas');
@@ -100,6 +138,15 @@ export class Game {
     this.moon.visible = false;
     this.moonAngle = 0;
     this.deco.add(this.atmo, this.ring, this.moon);
+    // Stage features (see _applyStageLook).
+    this.dust = pointsCloud(140, () => { const a = Math.random() * Math.PI * 2, r = 1.15 + Math.random() * 0.5; return [Math.cos(a) * r, Math.sin(a) * r, (Math.random() - 0.5) * 0.2]; }, 0.05, 0xd8c8b0);
+    this.clouds = new THREE.Mesh(new THREE.SphereGeometry(R0 * 1.05, 40, 28), new THREE.MeshStandardMaterial({ map: cloudTexture(), transparent: true, opacity: 0, roughness: 1, depthWrite: false }));
+    this.spiral = pointsCloud(420, (i, n) => { const arm = i % 2, k = i / n, a = k * Math.PI * 4 + arm * Math.PI, r = 0.35 + k * 1.15; const j = (Math.random() - 0.5) * 0.18; return [Math.cos(a) * r + j, Math.sin(a) * r + j, (Math.random() - 0.5) * 0.08]; }, 0.09, 0xfff2c0);
+    this.field = pointsCloud(260, () => { const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 6; return [Math.cos(a) * r, Math.sin(a) * r, -2 - Math.random() * 4]; }, 0.16, 0xc9b8ff);
+    this.dust.visible = this.spiral.visible = this.field.visible = false;
+    this.planet.add(this.clouds);
+    this.deco.add(this.dust, this.spiral, this.field);
+    this.stageLook = -1;
 
     // Orbit path of the incoming rock.
     {
@@ -212,17 +259,30 @@ export class Game {
     for (const r of this.rocks) this._colorize(r.mesh.material, r.index);
     if (this.incoming) this._colorize(this.incoming.mesh.material, this.incoming.index);
     if (this.flying) this._colorize(this.flying.mesh.material, this.flying.index);
+    this.stageLook = -1;
     this._updateSky(true);
   }
 
   _colorize(mat, i) {
+    if (mat.userData.special) return;   // special rocks keep their own look through stage changes
     const [h, s, l] = rockHSL(this.theme, i, this.hueOffset);
     mat.color.setHSL(h / 360, s, l, THREE.SRGBColorSpace);
+    const st = Math.min(this.stage || 0, 8);
+    const LATE = { 4: [0.08, 0.9, 0.62, 0.35], 5: [0.58, 0.6, 0.78, 0.4], 6: [0.86, 0.8, 0.68, 0.5], 7: [0.12, 0.5, 0.85, 0.6], 8: [0.74, 0.7, 0.62, 0.6] };
+    if (st === 0) { mat.color.offsetHSL(0, -0.35, -0.08); }
+    if (LATE[st] && !(mat.emissive && mat.emissiveIntensity > 0.3 && mat.userData.special)) {
+      const [hh, ss, ll, em] = LATE[st];
+      const hue = (hh + (this.stage > 8 ? (this.stage - 8) * 0.17 : 0) + (i % 5) * 0.02) % 1;
+      mat.color.setHSL(hue, ss, ll, THREE.SRGBColorSpace);
+      mat.emissive.setHSL(hue, ss, ll * 0.7, THREE.SRGBColorSpace);
+      mat.emissiveIntensity = em;
+    }
   }
 
   _rockMesh(i, r, kind = 'normal') {
     const mat = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0.0, flatShading: true });
     this._colorize(mat, i);
+    if (kind !== 'normal' && kind !== 'wild') mat.userData.special = true;
     if (kind === 'heavy') { mat.color.multiplyScalar(0.45); mat.emissive.set(0xff2a00); mat.emissiveIntensity = 0.45; mat.metalness = 0.35; }
     else if (kind === 'ice') { mat.color.set(0xc9f1ff); mat.roughness = 0.15; mat.transparent = true; mat.opacity = 0.88; mat.emissive.set(0x3fa9ff); mat.emissiveIntensity = 0.25; }
     else if (kind === 'gold') { mat.color.set(0xffd24a); mat.metalness = 0.85; mat.roughness = 0.3; mat.emissive.set(0xffaa00); mat.emissiveIntensity = 0.5; }
@@ -828,6 +888,41 @@ export class Game {
     this.hooks.onSky && this.hooks.onSky(colors, stage, changed);
     this.lastStage = stage;
     this.stage = stage;
+    if (stage !== this.stageLook) this._applyStageLook(stage, !force && this.state === 'playing');
+  }
+
+  // Every growth stage has its own look: bare rock → air → oceans and clouds → bands → a lit
+  // star → blue giant → supernova remnant → galaxy → universe(s).
+  _applyStageLook(stage, live) {
+    this.stageLook = stage;
+    const th = this.theme || { core: '#888888', atmo: '#66ccff' };
+    const core = this.coreMat;
+    core.map = null; core.emissiveIntensity = 0; core.emissive.set(0x000000); core.roughness = 0.85; core.metalness = 0.05;
+    core.color.set(th.core);
+    this.core.scale.setScalar(1);
+    this.atmoMat.color.set(th.atmo);
+    this.dust.visible = stage === 0;
+    this.clouds.material.opacity = 0;
+    this.spiral.visible = stage === 7;
+    this.field.visible = stage >= 8;
+    this.atmoTarget = 0; this.atmoScale = 1; this.corePulse = 0;
+    switch (Math.min(stage, 8)) {
+      case 0: core.color.set(th.core).multiplyScalar(0.55); core.roughness = 1; break;
+      case 1: this.atmoTarget = 0.28; break;
+      case 2: core.color.set(th.core).lerp(new THREE.Color(0x2d6cd8), 0.55); this.clouds.material.opacity = 0.55; this.atmoTarget = 0.36; this.atmoScale = 1.1; break;
+      case 3: core.map = bandTexture(th.core); core.color.set(0xffffff); this.atmoTarget = 0.42; this.atmoScale = 1.25; break;
+      case 4: core.color.set(0xffe2a0); core.emissive.set(0xffb040); core.emissiveIntensity = 1.4; this.atmoMat.color.set(0xffb040); this.atmoTarget = 0.7; this.atmoScale = 1.5; break;
+      case 5: core.color.set(0xcfe6ff); core.emissive.set(0x7fb8ff); core.emissiveIntensity = 1.6; this.atmoMat.color.set(0x7fb8ff); this.atmoTarget = 0.75; this.atmoScale = 1.6; break;
+      case 6: core.color.set(0xffffff); core.emissive.set(0xff5ee6); core.emissiveIntensity = 1.2; this.core.scale.setScalar(0.55); this.atmoMat.color.set(0xff5ee6); this.atmoTarget = 0.6; this.atmoScale = 1.3; this.corePulse = 12; break;
+      case 7: core.color.set(0xfff2c0); core.emissive.set(0xfff2c0); core.emissiveIntensity = 1.0; this.atmoMat.color.set(0xfff2c0); this.atmoTarget = 0.5; this.atmoScale = 2.2; break;
+      case 8: core.color.set(0xd8c8ff); core.emissive.set(0x9b7bff); core.emissiveIntensity = 0.9; this.atmoMat.color.set(0x9b7bff); this.atmoTarget = 0.45; this.atmoScale = 1.8; break;
+      default: break;
+    }
+    if (stage >= 8) { const hue = ((stage - 8) * 0.17) % 1; this.atmoMat.color.setHSL(0.72 + hue, 0.7, 0.6); core.emissive.setHSL(0.72 + hue, 0.7, 0.55); }
+    this.stageEmissive = core.emissiveIntensity;   // the balance glow is added on top each frame
+    core.needsUpdate = true;
+    for (const r of this.rocks) this._colorize(r.mesh.material, r.index);
+    if (live && stage === 6) { this.shake = Math.max(this.shake, 0.8); this.hooks.onFlash && this.hooks.onFlash(); for (let i = 0; i < 3; i++) this._burst(this.planet.position, new THREE.Color(0xff9ef0), this.Rvis * 1.2); }
   }
 
   // ---------- Loop ----------
@@ -954,13 +1049,19 @@ export class Game {
         this.heavy.material.opacity = 0;
         this.sweet.material.opacity = 0;
       }
-      this.coreMat.emissiveIntensity = q * q * 0.9;
+      this.coreMat.emissiveIntensity = (this.stageEmissive || 0) + q * q * 0.9;
     }
 
     // Decorations
     const stage = this.stage;
     this.atmo.scale.setScalar(Math.max(this.Rmass * 3.6, this.Rvis * 2.6));
-    this.atmoMat.opacity += ((stage >= 1 ? 0.28 + 0.06 * stage : 0) - this.atmoMat.opacity) * Math.min(1, dt * 2);
+    this.atmoMat.opacity += ((this.atmoTarget || 0) - this.atmoMat.opacity) * Math.min(1, dt * 2);
+    this.atmo.scale.multiplyScalar(this.atmoScale || 1);
+    if (this.dust.visible) { this.dust.rotation.z += dt * 0.15; this.dust.scale.setScalar(Math.max(this.Rvis, 1)); this.dust.position.copy(this.planet.position); }
+    if (this.clouds.material.opacity > 0) { this.clouds.rotation.y += dt * 0.12; this.clouds.scale.setScalar(Math.max(1, this.Rvis * 0.98)); }
+    if (this.spiral.visible) { this.spiral.rotation.z -= dt * 0.08; this.spiral.scale.setScalar(this.Rvis * 2.2); this.spiral.position.copy(this.planet.position); }
+    if (this.field.visible) { this.field.rotation.z += dt * 0.01; this.field.scale.setScalar(Math.max(1, this.Rvis * 0.9)); }
+    if (this.corePulse) this.coreMat.emissiveIntensity = (this.stageEmissive || 1) + 0.8 * Math.max(0, Math.sin(this.time * this.corePulse));
     this.ring.scale.setScalar(Math.max(this.Rmass * 1.2, this.Rvis * 0.85));
     this.ringMat.opacity = 0;
     this.moon.visible = false;
