@@ -53,6 +53,14 @@ Lloc estàtic: puja la carpeta (sense `skystack-old/`) a GitHub Pages, Netlify, 
 
 Toc, clic o **espai** per llançar. **Enter** per tornar-hi a la pantalla final.
 
+## El viatge (v2)
+
+- **Roques especials** a partir de la roca 15 (8% → 30% de probabilitat): *pesada* (doble massa), *gel* (rellisca fins a 45° cap al punt verd; al costat pesat es congela i pesa un 30% més), *or* (fa créixer el planeta el doble i suma combo) i *explosiva* (fa saltar les roques del voltant on cau; l'única manera de treure pes).
+- **Trobades**: cada 25 roques (les primeres 25 són de calma) el planeta troba una cosa que aplica una regla durant 25 roques, amb 5 roques de calma entremig on es veu acostar-se la següent. Nou trobades combinables (lluna, anell, planeta X, cometa, pluja de meteorits, estrella, nebulosa, forat negre, cinturó). Les tres primeres són suaus i d'una en una; a partir de la sisena n'hi ha dues alhora, i tres a partir de la dotzena. Cada repetició torna amb més intensitat (Lluna II, III…). La seqüència surt de la llavor de la partida (al repte diari, la mateixa per a tothom). Mai anell i cinturó junts.
+- **Targetes**: al final de cada bloc de tres trobades, tres targetes a triar-ne una (avantatge + cost). S'acumulen tota la partida, màxim dues de la mateixa.
+- **Dificultat sense sostre**: la velocitat de gir puja ràpid fins a ~100 roques i després continua pujant lentament per sempre.
+- Codi: `js/journey.js` (generador, roques especials, targetes), `js/encounters.js` (visuals i regles de cada trobada), integrat a `js/game.js`; sons d'ambient per trobada a `js/audio.js`.
+
 ## Publicació i app Android
 
 - **Web / PWA**: https://puji07git.github.io/planeta/ (repositori públic `puji07Git/planeta`, GitHub Pages). Codi font al repositori privat `puji07Git/planeta-src`.

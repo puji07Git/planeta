@@ -42,6 +42,9 @@
       <div id="target" class="hidden"></div>
       <div id="gauge" title="Equilibri"><div id="gauge-fill"></div><span data-i18n="balance">Equilibri</span></div>
       <div id="play-hint" class="hidden"></div>
+      <div id="encounter" class="hidden"></div>
+      <div id="rocktag" class="hidden"></div>
+      <div id="glare"></div>
     </div>
 
     <div id="topbar">
@@ -85,6 +88,7 @@
           <div><small data-i18n="maxcombo">Combo màx.</small><b id="go-combo">0</b></div>
         </div>
         <div id="go-emoji" class="go-emoji"></div>
+        <div id="go-journey" class="go-journey hidden"></div>
         <div id="go-daily-info" class="go-daily hidden"></div>
         <div class="go-actions">
           <button id="btn-share" class="primary big" data-i18n="share">📤 COMPARTEIX</button>
@@ -94,6 +98,15 @@
             <button id="btn-home" class="ghost" data-i18n="home">Menú</button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Cards (end of every block of encounters) -->
+    <section id="cards" class="screen hidden">
+      <div class="card">
+        <h2 id="cards-title" data-i18n="cardsTitle">Tria una targeta</h2>
+        <p id="cards-sub" class="cards-sub"></p>
+        <div id="cards-grid" class="cards-grid"></div>
       </div>
     </section>
 

@@ -6,6 +6,7 @@ import { THEMES, themeById, rockHSL, hslToHex, stageIndex } from './themes.js';
 import { store } from './storage.js';
 import { rngFromString, todayKey, dayNumber, msUntilTomorrow, formatCountdown } from './rng.js';
 import { emojiGrid, shareText, shareFile, renderCard, downloadBlob, baseUrl } from './share.js';
+import { ENCOUNTERS, CARDS } from './journey.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -17,6 +18,7 @@ const el = {
   goTitle: $('go-title'), goRecord: $('go-record'), goScore: $('go-score'), goKm: $('go-km'),
   goBest: $('go-best'), goPerfects: $('go-perfects'), goCombo: $('go-combo'), goEmoji: $('go-emoji'), goDaily: $('go-daily-info'),
   themeGrid: $('theme-grid'), statsGrid: $('stats-grid'),
+  encounter: $('encounter'), rocktag: $('rocktag'), glare: $('glare'), cards: $('cards'), cardsSub: $('cards-sub'), cardsGrid: $('cards-grid'), goJourney: $('go-journey'),
   btnMute: $('btn-mute'), btnLang: $('btn-lang'),
 };
 
@@ -61,6 +63,7 @@ const game = new Game($('c'), {
     el.score.classList.remove('pop'); void el.score.offsetWidth; el.score.classList.add('pop');
     setGauge(q);
     if (cracked) { audio.crack(); haptic([60, 40, 120]); el.playHint.classList.add('hidden'); return; }
+    if (arguments[0].frozen) toast(t('iceFrozen'), 1200);
     if (perfect) {
       audio.perfect(combo);
       haptic(combo >= 3 ? [12, 30, 12] : 12);
@@ -86,18 +89,93 @@ const game = new Game($('c'), {
   },
   onFail(result) {
     lastResult = result;
+    stopAmbients();
     showGameOver(result);
   },
+  onSpawn(kind) {
+    if (kind === 'normal' || kind === 'wild') { el.rocktag.classList.add('hidden'); return; }
+    el.rocktag.textContent = t('rock_' + kind);
+    el.rocktag.classList.remove('hidden');
+    el.rocktag.style.animation = 'none'; void el.rocktag.offsetWidth; el.rocktag.style.animation = '';
+    audio.special(kind);
+    clearTimeout(onSpawnTimer);
+    onSpawnTimer = setTimeout(() => el.rocktag.classList.add('hidden'), 2600);
+  },
+  onEncounter(phase, list, index) {
+    if (phase === 'start') {
+      audio.encounterJingle(Math.max(...list.map((a) => a.level)));
+      haptic([15, 30, 15]);
+      for (const a of list) startAmbient(a.id);
+      showMilestone(list.map((a) => `${ENCOUNTERS[a.id].icon} ${t('enc_' + a.id)}${a.level > 1 ? ' ' + roman(a.level) : ''}`).join(' + '));
+    } else {
+      for (const a of list) stopAmbient(a.id);
+    }
+    renderEncounterBar();
+  },
+  onCards(cards, block) {
+    audio.cardsOpen();
+    haptic([20, 30, 20, 30, 20]);
+    el.rocktag.classList.add('hidden');
+    renderCards(cards, block);
+  },
+  onCardChosen() { show(null); },
+  onWind() { audio.wind(); toast(t('wind'), 900); },
+  onGlare() { el.glare.style.opacity = '0.55'; setTimeout(() => { el.glare.style.opacity = '0'; }, 220); },
+  onBounce() { audio.bounce(); toast(t('bounce'), 800); haptic(20); },
+  onSmash() { audio.smash(); toast(t('smash'), 1000); haptic([30, 30, 30]); },
+  onBoom(n) { audio.boom(); haptic([40, 30, 60]); if (n) toast(t('boomHit', { n }), 1200); },
+  onRescue() { audio.rescue(); haptic([30, 40, 30, 40, 60]); showMilestone(t('rescue')); },
+  onCompress() { toast(t('compress'), 900); },
+  onWild() { audio.whoosh(); },
+  onWildLand(q) { audio.place(1 - q); setGauge(q); },
 });
+let onSpawnTimer = 0;
+const roman = (n) => ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || String(n);
+
+// ---------- Journey UI ----------
+const ambients = new Map();
+function startAmbient(id) {
+  if (ambients.has(id)) return;
+  const h = audio.ambient(id);
+  if (h) ambients.set(id, h);
+}
+function stopAmbient(id) { const h = ambients.get(id); if (h) { h.stop(); ambients.delete(id); } }
+function stopAmbients() { for (const id of [...ambients.keys()]) stopAmbient(id); }
+
+function renderEncounterBar() {
+  const live = game.encounters.filter((v) => v.target === 1);
+  el.encounter.innerHTML = '';
+  for (const v of live) {
+    const d = document.createElement('div');
+    d.className = 'enc' + (v.pending ? ' near' : '');
+    const name = `${t('enc_' + v.id)}${v.level > 1 ? ' ' + roman(v.level) : ''}`;
+    d.innerHTML = `<span>${ENCOUNTERS[v.id].icon}</span><span>${v.pending ? t('encNear') + ': ' : ''}${name}</span>${v.pending ? '' : `<small>· ${t('enc_' + v.id + '_hint')}</small>`}`;
+    el.encounter.appendChild(d);
+  }
+  el.encounter.classList.toggle('hidden', !live.length);
+}
+
+function renderCards(cards, block) {
+  el.cardsSub.textContent = t('cardsSub', { n: block });
+  el.cardsGrid.innerHTML = '';
+  for (const c of cards) {
+    const b = document.createElement('button');
+    b.className = 'card-opt';
+    b.innerHTML = `<div class="ico">${c.icon}</div><div class="name">${t('card_' + c.id)}</div><div class="pro">✔ ${t('card_' + c.id + '_pro')}</div><div class="con">✖ ${t('card_' + c.id + '_con')}</div>`;
+    b.addEventListener('click', () => { audio.cardPick(); haptic(15); game.chooseCard(c.id); });
+    el.cardsGrid.appendChild(b);
+  }
+  show(el.cards);
+}
 game.setTheme(theme);
 applyThemeUi();
 game.reset();
 
 // ---------- Screens ----------
 function show(screen) {
-  [el.menu, el.gameover, el.themes, el.stats].forEach((s) => s.classList.add('hidden'));
+  [el.menu, el.gameover, el.themes, el.stats, el.cards].forEach((s) => s.classList.add('hidden'));
   if (screen) screen.classList.remove('hidden');
-  el.hud.classList.toggle('hidden', screen !== null);
+  el.hud.classList.toggle('hidden', screen !== null && screen !== el.cards);
 }
 
 function toast(msg, ms = 2200) {
@@ -156,6 +234,9 @@ function startGame(m) {
   el.score.textContent = '0';
   el.size.textContent = `${fmtKm(game.sizeKm)} km`;
   el.combo.classList.remove('show');
+  el.encounter.classList.add('hidden'); el.encounter.innerHTML = '';
+  el.rocktag.classList.add('hidden');
+  stopAmbients();
   setGauge(0);
   el.playHint.textContent = store.games < 3 ? t('hint') : t('tapHint');
   el.playHint.classList.remove('hidden');
@@ -199,6 +280,13 @@ function showGameOver(r) {
   el.goPerfects.textContent = r.perfects;
   el.goCombo.textContent = r.maxCombo;
   el.goEmoji.textContent = emojiGrid(r.results);
+  {
+    const parts = [];
+    if (r.encounters) parts.push(`<span>🚀 ${t('encountersSeen')}: ${r.encounters}</span>`);
+    for (const id of r.cards || []) { const c = CARDS.find((x) => x.id === id); if (c) parts.push(`<span>${c.icon} ${t('card_' + id)}</span>`); }
+    el.goJourney.innerHTML = parts.join('');
+    el.goJourney.classList.toggle('hidden', !parts.length);
+  }
   el.goDaily.textContent = dailyInfo;
   el.goDaily.classList.toggle('hidden', !dailyInfo);
   show(el.gameover);
@@ -275,6 +363,7 @@ $('btn-stats').addEventListener('click', () => { audio.click(); renderStats(); s
 document.querySelectorAll('.btn-back').forEach((b) => b.addEventListener('click', () => { audio.click(); goHome(); }));
 
 function goHome() {
+  stopAmbients();
   game.reset();
   game.idle();
   refreshMenu();

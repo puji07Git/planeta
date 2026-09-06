@@ -2,6 +2,8 @@
 // centre of mass; let the heavy side grow too much and the planet tears itself apart.
 import * as THREE from 'three';
 import { rockHSL, nebulaFor, stageIndex } from './themes.js';
+import { Journey, rollRockKind, defaultMods, offerCards, applyCard } from './journey.js';
+import { createEncounter, updateEncounter, disposeEncounter, gravitySources, ringBlocks, beltBlocks, angDist } from './encounters.js';
 
 const R0 = 1;              // core radius
 const FOV = 45;
@@ -42,6 +44,20 @@ function glowTexture() {
   g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+
+// Soft but opaque disc for the nebula fog.
+function fogTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.55, 'rgba(255,255,255,0.97)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
   return new THREE.CanvasTexture(c);
 }
 
@@ -103,6 +119,22 @@ export class Game {
     this.sweet = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: 0x4dff88, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
     this.scene.add(this.heavy, this.sweet);
 
+    // Journey: encounters live under `enc`; the fog sprite can hide everything; the prediction
+    // line belongs to the Vision card.
+    this.enc = new THREE.Group();
+    this.scene.add(this.enc);
+    this.journey = new Journey(Math.random);
+    this.mods = defaultMods();
+    this.chosenCards = []; this.lives = 0; this.compressCount = 0;
+    this.encounters = [];        // live encounter visuals
+    this.orbitDir = 1; this.orbitEcc = 0; this.orbitPhi = 0; this.spinMul = 1; this.glare = 0; this.fogTarget = 0;
+    this.lastSpecial = false; this.wild = []; this.incoming2 = null; this.cometDue = 0; this.pendingCards = null;
+    this.fogMat = new THREE.SpriteMaterial({ map: fogTexture(), color: 0x7f8fb8, transparent: true, opacity: 0, depthWrite: false, depthTest: false });
+    this.fog = new THREE.Sprite(this.fogMat); this.fog.renderOrder = 50; this.scene.add(this.fog);
+    this.predict = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+      new THREE.LineDashedMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, dashSize: 0.25, gapSize: 0.18 }));
+    this.predict.visible = false; this.scene.add(this.predict);
+
     // Stars on a far shell.
     {
       const N = 900;
@@ -140,9 +172,10 @@ export class Game {
   get orbitR() { return Math.max(this.Rvis * 1.3, this.Rmass * 1.8) + 0.9; }
   get sizeKm() { return Math.round((this.Rmass * 1800) / 10) * 10; }
 
-  _spin(i) { return Math.min(1.5, 0.35 + i * 0.011); }
-  _orbitSpeed(i) { return -Math.min(2.4, 0.95 + i * 0.013) * (this.jitter ? 0.88 + this.rng() * 0.24 : 1); }
-  _limit(i) { return Math.max(0.06, 0.11 - i * 0.0004); }
+  // Difficulty never stops growing: fast at first, then a slow but endless climb.
+  _spin(i) { return (0.35 + 1.15 * (1 - Math.exp(-i / 90)) + i * 0.0025) * this.mods.spin; }
+  _orbitSpeed(i) { return -(0.95 + 1.45 * (1 - Math.exp(-i / 110)) + i * 0.002) * (this.jitter ? 0.88 + this.rng() * 0.24 : 1) * this.mods.orbit; }
+  _limit(i) { return Math.max(0.05, 0.11 - i * 0.0004) * this.mods.limit; }
 
   resize() {
     const w = window.innerWidth, h = window.innerHeight;
@@ -181,9 +214,15 @@ export class Game {
     mat.color.setHSL(h / 360, s, l, THREE.SRGBColorSpace);
   }
 
-  _rockMesh(i, r) {
+  _rockMesh(i, r, kind = 'normal') {
     const mat = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0.0, flatShading: true });
     this._colorize(mat, i);
+    if (kind === 'heavy') { mat.color.multiplyScalar(0.45); mat.emissive.set(0xff2a00); mat.emissiveIntensity = 0.45; mat.metalness = 0.35; }
+    else if (kind === 'ice') { mat.color.set(0xc9f1ff); mat.roughness = 0.15; mat.transparent = true; mat.opacity = 0.88; mat.emissive.set(0x3fa9ff); mat.emissiveIntensity = 0.25; }
+    else if (kind === 'gold') { mat.color.set(0xffd24a); mat.metalness = 0.85; mat.roughness = 0.3; mat.emissive.set(0xffaa00); mat.emissiveIntensity = 0.5; }
+    else if (kind === 'boom') { mat.color.set(0x2a2a30); mat.emissive.set(0xff6a00); mat.emissiveIntensity = 0.8; }
+    else if (kind === 'comet') { mat.color.set(0xe8fbff); mat.emissive.set(0xffffff); mat.emissiveIntensity = 0.9; }
+    else if (kind === 'wild') { mat.color.set(0x8a8a94); }
     const mesh = new THREE.Mesh(this.rockGeos[Math.floor(this.rng() * this.rockGeos.length)], mat);
     mesh.scale.setScalar(r);
     mesh.rotation.set(this.rng() * 6.28, this.rng() * 6.28, this.rng() * 6.28);
@@ -212,6 +251,15 @@ export class Game {
     this.atmoMat.opacity = 0; this.ringMat.opacity = 0; this.moon.visible = false;
     this.heavy.material.opacity = 0; this.sweet.material.opacity = 0;
     this.stage = 0; this.lastStage = -1;
+    this.mods = defaultMods(); this.chosenCards = []; this.lives = 0; this.compressCount = 0; this.pendingCards = null;
+    this.journey.reset(this.rng);
+    for (const v of this.encounters) disposeEncounter(this, v);
+    this.encounters = [];
+    for (const w of this.wild) this._dispose(w.mesh);
+    this.wild = [];
+    if (this.incoming2) { this._dispose(this.incoming2.mesh); this.incoming2 = null; }
+    this.orbitDir = 1; this.orbitEcc = 0; this.spinMul = 1; this.glare = 0; this.fogTarget = 0; this.fogMat.opacity = 0;
+    this.lastSpecial = false; this.cometDue = 0; this.predict.visible = false;
     this.orbitTheta = this.rng() * Math.PI * 2;
     this.spawnTimer = 0; this.overTimer = 0; this.overFired = false; this.shake = 0;
     this._spawn();
@@ -230,26 +278,65 @@ export class Game {
   // ---------- Mechanics ----------
   _spawn() {
     const i = this.score;
-    const r = this.Rmass * (0.2 + this.rng() * 0.2);
-    const mesh = this._rockMesh(i, r);
-    this.scene.add(mesh);
-    const zt = (this.rng() * 2 - 1) * 0.6 * this.Rmass;
-    this.incoming = { mesh, r, m: r * r * r, index: i, omega: this._orbitSpeed(i), zt };
+    if (!this.incoming) {
+      let kind = rollRockKind(this.rng, i, this.lastSpecial, this.mods);
+      if (this.cometDue > 0) { kind = 'comet'; this.cometDue = 0; }
+      this.lastSpecial = kind !== 'normal';
+      this.incoming = this._makeRock(i, kind);
+      this.hooks.onSpawn && this.hooks.onSpawn(kind);
+    }
+    if (this.mods.doubleOrbit && !this.incoming2) this.incoming2 = this._makeRock(i, rollRockKind(this.rng, i, true, this.mods));
     this._placeIncoming();
     this._fitCamera();
   }
 
+  _makeRock(i, kind) {
+    let size = this.mods.size, massMul = this.mods.mass;
+    if (kind === 'gold') size *= this.mods.goldSize * 0.85;
+    if (kind === 'heavy') { size *= 0.9; massMul *= 2; }
+    if (kind === 'comet') size *= 0.8;
+    const r = this.Rmass * (0.2 + this.rng() * 0.2) * size;
+    const mesh = this._rockMesh(i, r, kind);
+    this.scene.add(mesh);
+    const zt = (this.rng() * 2 - 1) * 0.6 * this.Rmass;
+    let omega = this._orbitSpeed(i), life = 0;
+    if (kind === 'comet') { const c = this.encounters.find((v) => v.id === 'comet'); omega *= c ? c.speedMul : 2.2; life = (Math.PI * 2) / Math.abs(omega); }
+    return { mesh, r, m: r * r * r * massMul, index: i, omega, zt, kind, life };
+  }
+
+  _orbitPoint(theta, out) {
+    const r = this.orbitR * (1 + this.orbitEcc * Math.cos(theta - this.orbitPhi));
+    return out.set(Math.cos(theta) * r, Math.sin(theta) * r, 0);
+  }
+
   _placeIncoming() {
-    const p = this.incoming.mesh.position;
-    p.set(Math.cos(this.orbitTheta), Math.sin(this.orbitTheta), 0).multiplyScalar(this.orbitR);
+    if (this.incoming) this._orbitPoint(this.orbitTheta, this.incoming.mesh.position);
+    if (this.incoming2) this._orbitPoint(this.orbitTheta + Math.PI, this.incoming2.mesh.position);
+  }
+
+  // World angle of the green point (opposite the heavy side), or null when balanced.
+  _sweetAngle() {
+    const cw = this._comWorld(_v);
+    if (cw.length() < 1e-4) return null;
+    return Math.atan2(-cw.y, -cw.x);
   }
 
   launch() {
     if (this.state !== 'playing' || !this.incoming || this.flying) return false;
     if (performance.now() < this.inputLockUntil) return false;
-    this.flying = this.incoming;
-    this.incoming = null;
-    this.flying.dir = new THREE.Vector3(0, 0, this.flying.zt).sub(this.flying.mesh.position).normalize();
+    let f = this.incoming;
+    if (this.incoming2) {
+      // Double orbit: fire whichever rock is nearer the green point; the other keeps its place.
+      const sw = this._sweetAngle();
+      const a1 = this.orbitTheta, a2 = this.orbitTheta + Math.PI;
+      if (sw !== null && Math.abs(angDist(a2, sw)) < Math.abs(angDist(a1, sw))) { f = this.incoming2; this.incoming2 = null; }
+      else { this.incoming = this.incoming2; this.incoming2 = null; this.orbitTheta = a2; }
+    } else this.incoming = null;
+    f.dir = new THREE.Vector3(0, 0, f.zt).sub(f.mesh.position).normalize();
+    f.launchAngle = Math.atan2(f.mesh.position.y, f.mesh.position.x);
+    const sw = this._sweetAngle();
+    f.magnet = this.mods.magnet > 0 && sw !== null && Math.abs(angDist(f.launchAngle, sw)) < THREE.MathUtils.degToRad(this.mods.magnet);
+    this.flying = f;
     this.spawnTimer = 0.45;
     return true;
   }
@@ -341,40 +428,227 @@ export class Game {
   _land(f) {
     const pos = f.mesh.position;
     this._settle(pos, f.r);
+    if (f.kind === 'ice') this._slideIce(pos, f);
     const local = this.planet.worldToLocal(pos.clone());
     this.scene.remove(f.mesh);
     this.planet.add(f.mesh);
     f.mesh.position.copy(local);
     // `lp` is the landing position: the torque a rock contributes is fixed at impact, so the
     // cosmetic compaction below can never rebalance the planet for the player.
-    this.rocks.push({ mesh: f.mesh, local, lp: local.clone(), r: f.r, m: f.m, index: f.index });
+    this.rocks.push({ mesh: f.mesh, local, lp: local.clone(), r: f.r, m: f.m, index: f.index, kind: f.kind });
 
     const qBefore = this.q;
     this.M += f.m;
     this._compact();
     this._recomputeCom();
-    this.score++;
+    if (f.kind === 'boom') { this._boom(f); this._compact(); this._recomputeCom(); }
+    if (f.kind === 'gold' || f.kind === 'comet') this.M += f.m;   // grows the planet twice as much
+    if (!f.wild) this.score++;
     this.q = this.com.length() / (this._limit(this.score) * this.Rmass);
+    if (this.mods.compress && !f.wild && this.score % 10 === 0) {
+      const k = Math.pow(0.9, this.mods.compress);
+      for (const r of this.rocks) r.lp.multiplyScalar(k);
+      this._recomputeCom();
+      this.q = this.com.length() / (this._limit(this.score) * this.Rmass);
+      this.hooks.onCompress && this.hooks.onCompress();
+    }
+    if (f.wild) {
+      this.fx.push({ kind: 'pop', mesh: f.mesh, base: f.r, t: 0, life: 0.28 });
+      this._burst(pos, f.mesh.material.color, f.r);
+      this.shake = Math.max(this.shake, 0.06 + f.r * 0.25);
+      this._updateSky();
+      if (this.q >= 1 && this.lives > 0) { this.lives--; this._rescue(); }
+      if (this.q >= 1) { this.hooks.onPlace && this.hooks.onPlace({ score: this.score, perfect: false, combo: 0, q: 1, improved: false, sizeKm: this.sizeKm, cracked: true }); this._break(); return; }
+      this.hooks.onWildLand && this.hooks.onWildLand(this.q);
+      return;
+    }
 
     const improved = this.q < qBefore - 0.02;
     const perfect = (qBefore > 0.2 && this.q < qBefore * 0.45) || this.q < 0.06;
     if (perfect) { this.combo++; this.perfects++; this.maxCombo = Math.max(this.maxCombo, this.combo); }
     else this.combo = 0;
+    if (f.kind === 'gold' && perfect) { this.combo++; this.maxCombo = Math.max(this.maxCombo, this.combo); }
     this.results.push(perfect ? 'P' : 'C');
 
     this.fx.push({ kind: 'pop', mesh: f.mesh, base: f.r, t: 0, life: 0.28 });
     this._burst(pos, f.mesh.material.color, f.r);
     this.shake = Math.max(this.shake, 0.06 + f.r * 0.25);
-    this.flying = null;
+    if (this.flying === f) this.flying = null;
     this._updateSky();
-
+    if (this.q >= 1 && this.lives > 0) { this.lives--; this._rescue(); }
     if (this.q >= 1) {
       this.hooks.onPlace && this.hooks.onPlace({ score: this.score, perfect: false, combo: 0, q: 1, improved: false, sizeKm: this.sizeKm, cracked: true });
       this._break();
       return;
     }
     this._fitCamera();
-    this.hooks.onPlace && this.hooks.onPlace({ score: this.score, perfect, combo: this.combo, q: this.q, improved, sizeKm: this.sizeKm, cracked: false });
+    this.hooks.onPlace && this.hooks.onPlace({ score: this.score, perfect, combo: this.combo, q: this.q, improved, sizeKm: this.sizeKm, cracked: false, kind: f.kind, slid: !!f.slid, frozen: !!f.frozen });
+    for (const ev of this.journey.onRock(this.score)) this._journeyEvent(ev);
+    this._journeyTick();
+  }
+
+  // Ice slides toward the green point (up to 45°); on the heavy side it freezes and weighs more.
+  _slideIce(pos, f) {
+    const sw = this._sweetAngle();
+    if (sw === null) return;
+    const a = Math.atan2(pos.y, pos.x);
+    if (Math.abs(angDist(a, sw + Math.PI)) < THREE.MathUtils.degToRad(30)) { f.m *= 1.3; f.frozen = true; return; }
+    const d = angDist(sw, a);
+    const step = Math.sign(d) * Math.min(Math.abs(d), THREE.MathUtils.degToRad(45));
+    const r = pos.length();
+    pos.set(Math.cos(a + step) * r, Math.sin(a + step) * r, pos.z);
+    this._settle(pos, f.r);
+    f.slid = true;
+  }
+
+  // Explosive rock: blows away the rocks around where it lands (the only way to remove weight).
+  _boom(f) {
+    const me = this.rocks[this.rocks.length - 1];
+    const gone = [];
+    for (const rock of this.rocks) {
+      if (rock === me) continue;
+      const rr = (f.r + rock.r) * 1.9;
+      if (rock.local.distanceToSquared(me.local) <= rr * rr) gone.push(rock);
+    }
+    for (const rock of gone) this._removeRock(rock);
+    if (this.mods.boomKmCost) this.M = Math.max(1 + f.m, this.M * (1 - this.mods.boomKmCost));
+    this.shake = Math.max(this.shake, 0.35);
+    this.hooks.onBoom && this.hooks.onBoom(gone.length);
+  }
+
+  _removeRock(rock) {
+    this.M = Math.max(1, this.M - rock.m);
+    this._burst(this.planet.localToWorld(rock.local.clone()), rock.mesh.material.color, rock.r);
+    this._dispose(rock.mesh);
+    const i = this.rocks.indexOf(rock);
+    if (i >= 0) this.rocks.splice(i, 1);
+  }
+
+  // Second-chance card: the heaviest rocks on the heavy side fly off and the planet survives.
+  _rescue() {
+    const dir = this.com.clone().normalize();
+    const sorted = this.rocks.slice().sort((a, b) => b.lp.dot(dir) * b.m - a.lp.dot(dir) * a.m);
+    for (const rock of sorted.slice(0, Math.min(4, Math.max(1, Math.floor(this.rocks.length / 4))))) this._removeRock(rock);
+    this._compact(); this._recomputeCom();
+    let q = this.com.length() / (this._limit(this.score) * this.Rmass);
+    if (q > 0.6) { const k = 0.6 / q; for (const r of this.rocks) r.lp.multiplyScalar(k); this._recomputeCom(); q = 0.6; }
+    this.q = q;
+    this.shake = 0.5;
+    this.hooks.onRescue && this.hooks.onRescue(this.lives);
+  }
+
+  // ---------- Journey ----------
+  _journeyEvent(ev) {
+    if (ev.type === 'approach') {
+      for (const a of ev.segment.active) if (!this.encounters.some((v) => v.id === a.id && v.pending)) this._startEncounter(a, true);
+    } else if (ev.type === 'start') {
+      for (const a of ev.segment.active) {
+        const v = this.encounters.find((x) => x.id === a.id && x.pending);
+        if (v) v.pending = false; else this._startEncounter(a, false);
+      }
+      this.hooks.onEncounter && this.hooks.onEncounter('start', ev.segment.active, ev.index);
+    } else if (ev.type === 'end') {
+      for (const a of ev.segment.active) { const v = this.encounters.find((x) => x.id === a.id && !x.pending && x.target === 1); if (v) v.target = 0; }
+      this.hooks.onEncounter && this.hooks.onEncounter('end', ev.segment.active);
+    } else if (ev.type === 'cards') {
+      this.pendingCards = offerCards(this.rng, this.chosenCards);
+      this.state = 'cards';
+      this.hooks.onCards && this.hooks.onCards(this.pendingCards, ev.block);
+    }
+  }
+
+  _startEncounter(a, pending) {
+    const v = createEncounter(this, a.id, a.intensity, a.level, this.rng);
+    v.pending = pending;
+    this.encounters.push(v);
+  }
+
+  // Extra rocks driven by encounters: meteor showers and comets.
+  _journeyTick() {
+    const live = (id) => this.encounters.find((v) => v.id === id && !v.pending && v.target === 1);
+    const sh = live('shower');
+    if (sh && this.score % sh.every === 0) {
+      const a = this.rng() * Math.PI * 2;
+      const w = this._makeRock(this.score, 'wild');
+      this._orbitPoint(a, w.mesh.position).multiplyScalar(1.7);
+      w.dir = new THREE.Vector3(0, 0, w.zt).sub(w.mesh.position).normalize();
+      w.wild = true;
+      this.wild.push(w);
+      this.hooks.onWild && this.hooks.onWild();
+    }
+    const c = live('comet');
+    if (c && this.score % c.every === 0) this.cometDue = 1;
+  }
+
+  chooseCard(id) {
+    if (this.state !== 'cards') return;
+    applyCard(this.mods, id);
+    this.chosenCards.push(id);
+    this.pendingCards = null;
+    this.state = 'playing';
+    this.inputLockUntil = performance.now() + 300;
+    if (this.mods.doubleOrbit && !this.incoming2 && this.incoming) this.incoming2 = this._makeRock(this.score, 'normal');
+    this._placeIncoming();
+    this.hooks.onCardChosen && this.hooks.onCardChosen(id);
+  }
+
+  // Ring: the rock bounces back to the orbit and gets another lap.
+  _bounce(f, ang) {
+    if (this.flying === f) this.flying = null;
+    f.passedRing = false; f.passedBelt = false; f.dir = null; f.magnet = false;
+    if (!this.incoming) { this.incoming = f; this.orbitTheta = ang; this._placeIncoming(); }
+    else if (this.mods.doubleOrbit && !this.incoming2) { this.incoming2 = f; this._placeIncoming(); }
+    else this._dispose(f.mesh);
+    this.shake = Math.max(this.shake, 0.12);
+    this.hooks.onBounce && this.hooks.onBounce();
+  }
+
+  // Belt: the rock is lost against an asteroid.
+  _smash(f) {
+    if (this.flying === f) this.flying = null;
+    this._burst(f.mesh.position, f.mesh.material.color, f.r);
+    this._dispose(f.mesh);
+    this.combo = 0;
+    this.shake = Math.max(this.shake, 0.2);
+    this.hooks.onSmash && this.hooks.onSmash();
+  }
+
+  // One flight step for a launched or wild rock; returns true when the rock is gone (landed,
+  // bounced or smashed).
+  _flyStep(f, dt) {
+    const step = (FLY_SPEED * (0.6 + 0.4 * this.Rmass) * dt) / 4;
+    const grav = gravitySources(this.encounters.filter((v) => !v.pending));
+    const sw = f.magnet ? this._sweetAngle() : null;
+    for (let s = 0; s < 4; s++) {
+      for (const g of grav) {
+        _w.subVectors(g.pos, f.mesh.position);
+        const d = Math.max(0.5, _w.length());
+        f.dir.addScaledVector(_w.normalize(), (g.g * dt / 4) * Math.min(1, 8 / d));
+      }
+      if (sw !== null) { _w.set(Math.cos(sw), Math.sin(sw), 0).multiplyScalar(this.Rvis).sub(f.mesh.position); f.dir.addScaledVector(_w.normalize(), 5 * dt / 4); }
+      if (grav.length || sw !== null) f.dir.normalize();
+      f.mesh.position.addScaledVector(f.dir, step);
+      f.mesh.rotation.x += dt * 2;
+      const rad = f.mesh.position.length(), ang = Math.atan2(f.mesh.position.y, f.mesh.position.x);
+      if (!f.wild) {
+        for (const v of this.encounters) {
+          if (v.pending || v.target !== 1) continue;
+          if (v.id === 'ring' && !f.passedRing && rad <= this.orbitR * v.radius) { f.passedRing = true; if (ringBlocks(v, ang)) { this._bounce(f, ang); return true; } }
+          if (v.id === 'belt' && !f.passedBelt && rad <= this.orbitR * v.radius) { f.passedBelt = true; if (beltBlocks(v, ang, f.r / (this.orbitR * v.radius))) { this._smash(f); return true; } }
+        }
+      }
+      const hit = this._hitTest(f.mesh.position, f.r);
+      if (hit || rad < 0.05) {
+        if (hit) {
+          const n = f.mesh.position.clone().sub(hit.c);
+          if (n.lengthSq() < 1e-6) n.copy(f.dir).negate();
+          f.mesh.position.copy(hit.c).addScaledVector(n.normalize(), hit.rr);
+        }
+        this._land(f);
+        return true;
+      }
+    }
+    return false;
   }
 
   _break() {
@@ -390,6 +664,10 @@ export class Game {
       rock.ang = new THREE.Vector3((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
     }
     if (this.incoming) { this._dispose(this.incoming.mesh); this.incoming = null; }
+    if (this.incoming2) { this._dispose(this.incoming2.mesh); this.incoming2 = null; }
+    for (const w of this.wild) this._dispose(w.mesh);
+    this.wild = [];
+    this.predict.visible = false;
     this.shake = 0.9;
     this.overTimer = 0; this.overFired = false;
     this._fitCamera();
@@ -436,38 +714,62 @@ export class Game {
     const playing = this.state === 'playing';
     const idle = this.state === 'idle';
 
-    // Planet spin
-    if (playing || idle) this.planet.rotation.z += this.spinDir * (idle ? 0.25 : this._spin(this.score)) * dt;
+    // Encounters: their visuals, and the knobs they drive (re-derived every frame).
+    this.orbitEcc = 0; this.spinMul = 1; this.glare = 0; this.fogTarget = 0;
+    for (let i = this.encounters.length - 1; i >= 0; i--) {
+      const v = this.encounters[i];
+      updateEncounter(this, v, dt);
+      if (!v.alive) { disposeEncounter(this, v); this.encounters.splice(i, 1); }
+    }
+    this.fogMat.opacity += (this.fogTarget - this.fogMat.opacity) * Math.min(1, dt * 3);
+    this.fog.position.copy(this.planet.position);
+    this.fog.scale.setScalar(Math.max(this.orbitR * 2.1, this.Rvis * 3.2));
+    if (this.orbitEcc > 0 || this._lastEcc > 0) {
+      const pos = this.orbitLine.geometry.attributes.position;
+      for (let i = 0; i < 128; i++) {
+        const a = (i / 128) * Math.PI * 2, r = 1 + this.orbitEcc * Math.cos(a - this.orbitPhi);
+        pos.setXYZ(i, Math.cos(a) * r, Math.sin(a) * r, 0);
+      }
+      pos.needsUpdate = true;
+    }
+    this._lastEcc = this.orbitEcc;
 
-    // Orbiting rock
+    // Planet spin
+    if (playing || idle) this.planet.rotation.z += this.spinDir * (idle ? 0.25 : this._spin(this.score) * this.spinMul) * dt;
+
+    // Orbiting rock(s)
     if (this.incoming) {
-      this.orbitTheta += (idle ? -0.5 : this.incoming.omega) * dt;
+      this.orbitTheta += (idle ? -0.5 : this.incoming.omega * this.orbitDir) * dt;
       this._placeIncoming();
-      this.incoming.mesh.rotation.x += dt * 0.8;
-      this.incoming.mesh.rotation.y += dt * 1.1;
-    } else if (playing && !this.flying) {
+      for (const r of [this.incoming, this.incoming2]) {
+        if (!r) continue;
+        r.mesh.rotation.x += dt * 0.8; r.mesh.rotation.y += dt * 1.1;
+        if (r.kind === 'boom') r.mesh.material.emissiveIntensity = 0.6 + 0.4 * Math.sin(this.time * 9);
+      }
+      if (this.incoming.life) {
+        this.incoming.life -= dt;
+        if (this.incoming.life <= 0) { this._dispose(this.incoming.mesh); this.incoming = null; this.spawnTimer = 0.2; this.hooks.onCometGone && this.hooks.onCometGone(); }
+      }
+    }
+    if (playing && !this.flying && (!this.incoming || (this.mods.doubleOrbit && !this.incoming2))) {
       this.spawnTimer -= dt;
-      if (this.spawnTimer <= 0) { this.orbitTheta += Math.PI; this._spawn(); }
+      if (this.spawnTimer <= 0) { if (!this.incoming) this.orbitTheta += Math.PI; this._spawn(); }
     }
 
-    // Flying rock
-    if (this.flying) {
-      const f = this.flying;
-      const step = (FLY_SPEED * (0.6 + 0.4 * this.Rmass) * dt) / 4;
-      for (let s = 0; s < 4; s++) {
-        f.mesh.position.addScaledVector(f.dir, step);
-        f.mesh.rotation.x += dt * 2;
-        const hit = this._hitTest(f.mesh.position, f.r);
-        if (hit || f.mesh.position.length() < 0.05) {
-          if (hit) {
-            const n = f.mesh.position.clone().sub(hit.c);
-            if (n.lengthSq() < 1e-6) n.copy(f.dir).negate();
-            f.mesh.position.copy(hit.c).addScaledVector(n.normalize(), hit.rr);
-          }
-          this._land(f);
-          break;
-        }
-      }
+    // Flying rocks: the launched one and any wild ones from a meteor shower.
+    if (this.flying) this._flyStep(this.flying, dt);
+    for (let i = this.wild.length - 1; i >= 0; i--) if (this._flyStep(this.wild[i], dt)) this.wild.splice(i, 1);
+
+    // Vision card: where the waiting rock would go.
+    this.predict.visible = !!(this.mods.vision && this.incoming && playing);
+    if (this.predict.visible) {
+      const p = this.incoming.mesh.position;
+      const pts = this.predict.geometry.attributes.position;
+      const len = Math.max(0, p.length() - this.Rvis * 0.95);
+      const d = _w.set(-p.x, -p.y, 0).normalize();
+      pts.setXYZ(0, p.x, p.y, 0); pts.setXYZ(1, p.x + d.x * len, p.y + d.y * len, 0);
+      pts.needsUpdate = true;
+      this.predict.computeLineDistances();
     }
 
     // Balance visuals
@@ -489,9 +791,15 @@ export class Game {
         // Always readable while playing: the markers are the whole aiming aid, so they must not
         // fade to nothing on a well-balanced planet.
         this.heavy.material.opacity = (playing ? 0.35 + 0.65 * Math.min(1, q * 1.3) : idle ? Math.min(1, q * 1.3) : 0);
-        this.sweet.position.copy(dir).multiplyScalar(-this.Rvis * 1.08);
+        let sdir = dir;
+        if (this.mods.sweetWobble) {
+          const w = Math.sin(this.time * 2.3) * THREE.MathUtils.degToRad(this.mods.sweetWobble);
+          sdir = _w.set(dir.x * Math.cos(w) - dir.y * Math.sin(w), dir.x * Math.sin(w) + dir.y * Math.cos(w), 0);
+        }
+        this.sweet.position.copy(sdir).multiplyScalar(-this.Rvis * 1.08);
         this.sweet.scale.setScalar(this.Rvis * 0.6 * (2 - pulse));
-        this.sweet.material.opacity = (q > 0.08 ? 0.95 : 0.7) * (playing ? 1 : 0);
+        this.sweet.material.opacity = (q > 0.08 ? 0.95 : 0.7) * (playing ? 1 : 0) * (1 - this.glare);
+        this.heavy.material.opacity *= (1 - this.glare);
       } else {
         this.planet.position.set(0, 0, 0);
         this.heavy.material.opacity = 0;
@@ -558,6 +866,7 @@ export class Game {
         this.overFired = true;
         this.hooks.onFail && this.hooks.onFail({
           score: this.score, perfects: this.perfects, maxCombo: this.maxCombo, results: this.results.slice(), sizeKm: this.sizeKm,
+          cards: this.chosenCards.slice(), encounters: Object.keys(this.journey.seen).length,
         });
       }
     }
