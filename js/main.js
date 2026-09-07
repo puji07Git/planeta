@@ -68,6 +68,7 @@ el.btnLang.textContent = getLang().toUpperCase();
 const game = new Game($('c'), {
   onSky(colors, stage, stageChanged) {
     el.bg.style.background = `linear-gradient(180deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
+    if (stage === 0) { try { localStorage.setItem('planeta.look', JSON.stringify({ bg: [colors[0], colors[1]], accent: theme.accent, accent2: theme.accent2 })); } catch { /* ignore */ } }
     if (stageChanged && stage > 0 && game.state === 'playing') {
       showMilestone(t('stageMsg', { n: stage + 1, name: stageName(stage) }));
       audio.milestone(true);
