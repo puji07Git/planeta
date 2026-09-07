@@ -28,6 +28,19 @@
     }
   }
   </script>
+  <script>
+    // Apply the saved theme look before the first paint, so the chosen theme never flashes in
+    // after the default one.
+    try {
+      var look = JSON.parse(localStorage.getItem('planeta.look') || 'null');
+      if (look) {
+        var st = document.documentElement.style;
+        st.setProperty('--accent', look.accent); st.setProperty('--accent2', look.accent2);
+        document.write('<style>#bg{background:linear-gradient(180deg,' + look.bg[0] + ' 0%,' + look.bg[1] + ' 100%) !important}</style>');
+        var meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.setAttribute('content', look.bg[0]);
+      }
+    } catch (e) {}
+  </script>
 </head>
 <body>
   <div id="bg"></div>
