@@ -166,6 +166,7 @@ const STRINGS = {
     stageF7: 'Flaix; el nucli s’encongeix i polsa.',
     stageF8: 'Braços espirals d’estrelles.',
     stageF9: 'Cel negre i galàxies llunyanes.',
+    unlockedStreak: 'Desbloqueja amb {n} dies seguits de repte diari',
   },
   es: {
     tagline: 'Lanza rocas. Haz crecer tu planeta. No dejes que vuelque.',
@@ -330,6 +331,7 @@ const STRINGS = {
     stageF7: 'Flash; el núcleo se encoge y pulsa.',
     stageF8: 'Brazos espirales de estrellas.',
     stageF9: 'Cielo negro y galaxias lejanas.',
+    unlockedStreak: 'Desbloquea con {n} días seguidos de reto diario',
   },
   en: {
     tagline: 'Throw rocks. Grow your planet. Don\'t let it tip over.',
@@ -494,6 +496,7 @@ const STRINGS = {
     stageF7: 'A flash; the core shrinks and pulses.',
     stageF8: 'Spiral arms of stars.',
     stageF9: 'Black sky and distant galaxies.',
+    unlockedStreak: 'Unlock with a {n}-day daily streak',
   },
 };
 

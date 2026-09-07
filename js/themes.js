@@ -16,7 +16,7 @@ export const THEMES = [
     accent: '#ff5e7e', accent2: '#ffd166',
   },
   {
-    id: 'lava', unlock: 15,
+    id: 'lava', unlock: 25,
     name: { ca: 'Lava', es: 'Lava', en: 'Lava' },
     core: '#3a0c0c', atmo: '#ff7b00', ring: '#ffb347', moon: '#5a3a2a',
     hue0: 5, hueStep: 3, sat: 0.9, light: 0.5, wave: 0.12,
@@ -29,7 +29,7 @@ export const THEMES = [
     accent: '#ff7b00', accent2: '#ffe600',
   },
   {
-    id: 'gel', unlock: 30,
+    id: 'gel', unlock: 60,
     name: { ca: 'Gel', es: 'Hielo', en: 'Ice' },
     core: '#a9d6f5', atmo: '#bff3ff', ring: '#ffffff', moon: '#e8f4ff',
     hue0: 195, hueStep: 3, sat: 0.45, light: 0.74, wave: 0.08,
@@ -42,7 +42,7 @@ export const THEMES = [
     accent: '#4cc9f0', accent2: '#ffffff',
   },
   {
-    id: 'neo', unlock: 50,
+    id: 'neo', unlock: 100,
     name: { ca: 'Neó', es: 'Neón', en: 'Neon' },
     core: '#111118', atmo: '#00f5d4', ring: '#f15bb5', moon: '#9b5de5',
     hue0: 290, hueStep: 9, sat: 1.0, light: 0.55, wave: 0.1,
@@ -55,7 +55,7 @@ export const THEMES = [
     accent: '#00f5d4', accent2: '#f15bb5',
   },
   {
-    id: 'terra', unlock: 80,
+    id: 'terra', unlock: 150,
     name: { ca: 'Terra', es: 'Tierra', en: 'Earth' },
     core: '#1f4d8a', atmo: '#7fd0ff', ring: '#d9c9a3', moon: '#cfcfcf',
     hue0: 90, hueStep: 2, sat: 0.5, light: 0.42, wave: 0.12,
@@ -68,7 +68,7 @@ export const THEMES = [
     accent: '#ff9f1c', accent2: '#ffe66d',
   },
   {
-    id: 'or', unlock: 120,
+    id: 'or', unlock: 250,
     name: { ca: 'Or', es: 'Oro', en: 'Gold' },
     core: '#3d2b00', atmo: '#ffe08a', ring: '#fff1b8', moon: '#ffd166',
     hue0: 45, hueStep: 1, sat: 0.9, light: 0.55, wave: 0.15,
@@ -80,7 +80,64 @@ export const THEMES = [
     ],
     accent: '#ffd166', accent2: '#ffffff',
   },
+  {
+    id: 'supernova', unlock: 400,
+    name: { ca: 'Supernova', es: 'Supernova', en: 'Supernova' },
+    core: '#2a0a2a', atmo: '#ff5ee6', ring: '#ffb8f5', moon: '#c9a0ff',
+    hue0: 300, hueStep: 4, sat: 0.85, light: 0.6, wave: 0.12,
+    zones: [
+      ['#2a0a2a', '#0a0010'],
+      ['#3a0a3a', '#0a0010'],
+      ['#1a0530', '#000000'],
+      ['#3a1040', '#08000f'],
+    ],
+    accent: '#ff5ee6', accent2: '#ffd1f7',
+  },
+  {
+    id: 'galaxia', unlock: 600,
+    name: { ca: 'Galàxia', es: 'Galaxia', en: 'Galaxy' },
+    core: '#1a2250', atmo: '#fff2c0', ring: '#ffe8a0', moon: '#f0f0ff',
+    hue0: 40, hueStep: 7, sat: 0.7, light: 0.66, wave: 0.14,
+    zones: [
+      ['#0a0f2a', '#000000'],
+      ['#101a3a', '#000000'],
+      ['#0a1030', '#000000'],
+      ['#1a1a40', '#000005'],
+    ],
+    accent: '#ffe08a', accent2: '#7fb8ff',
+  },
+  {
+    id: 'univers', unlock: 900,
+    name: { ca: 'Univers', es: 'Universo', en: 'Universe' },
+    core: '#15082a', atmo: '#9b7bff', ring: '#c9b8ff', moon: '#e0d8ff',
+    hue0: 260, hueStep: 5, sat: 0.7, light: 0.6, wave: 0.12,
+    zones: [
+      ['#000006', '#000000'],
+      ['#08000f', '#000000'],
+      ['#050010', '#000000'],
+      ['#0a0018', '#000000'],
+    ],
+    accent: '#9b7bff', accent2: '#ffffff',
+  },
+  {
+    id: 'aurora', unlock: 0, streak: 7,
+    name: { ca: 'Aurora', es: 'Aurora', en: 'Aurora' },
+    core: '#0f3a3a', atmo: '#4dffb0', ring: '#b0fff0', moon: '#e0fff8',
+    hue0: 150, hueStep: 6, sat: 0.75, light: 0.58, wave: 0.14,
+    zones: [
+      ['#04202a', '#020a10'],
+      ['#063a3a', '#02100f'],
+      ['#0a2a3a', '#020810'],
+      ['#0a3a2a', '#02100a'],
+    ],
+    accent: '#4dffb0', accent2: '#7fe6ff',
+  },
 ];
+
+// A theme is available by record, or by daily-challenge streak for the ones that ask for it.
+export function themeUnlocked(th, best, streak) {
+  return th.streak ? streak >= th.streak : best >= th.unlock;
+}
 
 export function themeById(id) {
   return THEMES.find((t) => t.id === id) || THEMES[0];

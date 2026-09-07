@@ -2,7 +2,7 @@
 import { Game } from './game.js';
 import { AudioEngine, haptic } from './audio.js';
 import { t, setLang, detectLang, getLang, LANGS, fmtKm } from './i18n.js';
-import { THEMES, themeById, rockHSL, hslToHex, stageIndex, STAGE_SCORES, UNIVERSE_SPAN } from './themes.js';
+import { THEMES, themeById, rockHSL, hslToHex, stageIndex, STAGE_SCORES, UNIVERSE_SPAN, themeUnlocked } from './themes.js';
 
 // Stage names: nine, then "Univers II, III…".
 function stageName(i) {
@@ -366,7 +366,7 @@ function showGameOver(r) {
   refreshMenu();
 
   const seen = store.unlockedSeen;
-  const fresh = THEMES.filter((th) => store.best >= th.unlock && !seen.includes(th.id));
+  const fresh = THEMES.filter((th) => themeUnlocked(th, store.best, store.daily.streak || 0) && !seen.includes(th.id));
   if (fresh.length) {
     store.unlockedSeen = seen.concat(fresh.map((f) => f.id));
     setTimeout(() => toast(t('unlocked', { name: fresh[0].name[getLang()] }), 3000), 600);
@@ -518,7 +518,8 @@ function applyThemeUi() {
 function renderThemes() {
   el.themeGrid.innerHTML = '';
   for (const th of THEMES) {
-    const unlocked = store.best >= th.unlock;
+    // Themes unlocked under older thresholds stay unlocked.
+    const unlocked = themeUnlocked(th, store.best, store.daily.streak || 0) || store.unlockedSeen.includes(th.id);
     const card = document.createElement('button');
     card.className = 'theme-card' + (th.id === theme.id ? ' active' : '') + (unlocked ? '' : ' locked');
     const sw = document.createElement('div');
@@ -539,7 +540,7 @@ function renderThemes() {
     card.appendChild(name);
     const req = document.createElement('div');
     req.className = 'req';
-    req.textContent = unlocked ? '' : t('unlockedAt', { n: th.unlock });
+    req.textContent = unlocked ? '' : (th.streak ? t('unlockedStreak', { n: th.streak }) : t('unlockedAt', { n: th.unlock }));
     card.appendChild(req);
     if (unlocked) {
       card.addEventListener('click', () => {

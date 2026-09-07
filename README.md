@@ -86,3 +86,6 @@ Toc, clic o **espai** per llançar. **Enter** per tornar-hi a la pantalla final.
 - **Reconstruir l'app** (només si canvia icona, nom o paquet): `powershell -ExecutionPolicy Bypass -File build_app.ps1`. Puja `appVersionCode` a `app/twa-manifest.json` abans.
 - **Fes còpia de `keystore/`** (fora de git): és la clau de signatura de l'app.
 
+## Temes
+
+Deu temes. Es desbloquegen en arribar per primer cop a una etapa (Lava 25, Gel 60, Neó 100, Terra 150, Or 250, Supernova 400, Galàxia 600, Univers 900) i Aurora amb 7 dies seguits de repte diari. Els desbloquejats amb llindars antics es mantenen. El tema no canvia sol en desbloquejar-lo: només apareix l'avís i queda disponible a la llista. L'últim fons i colors es desen (`planeta.look`) i s'apliquen amb un guió inicial abans del primer pintat perquè el tema triat no aparegui després del de per defecte.
