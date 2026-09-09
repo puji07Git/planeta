@@ -157,6 +157,8 @@ export function updateEncounter(game, vis, dt) {
       vis.rot += vis.rotSpeed * dt;
       const r = R * vis.radius;
       vis.group.scale.setScalar(r * (0.2 + 0.8 * k) * (1 + far * 1.6));
+      vis.hitR = r * (0.2 + 0.8 * k) * (1 + far * 1.6);   // collide where the arcs are drawn
+      vis.settled = far < 0.03 && k > 0.95;
       vis.group.rotation.z = vis.rot;
       for (const a of vis.arcs) a.material.opacity = (0.85 - far * 0.6) * k;
       break;
@@ -164,6 +166,8 @@ export function updateEncounter(game, vis, dt) {
     case 'belt': {
       vis.rot += vis.rotSpeed * dt;
       const r = R * vis.radius;
+      vis.hitR = r * (1 + far * 1.4 + (1 - k) * 2.5);
+      vis.settled = far < 0.03 && k > 0.95;
       for (let i = 0; i < vis.n; i++) {
         const a = vis.rot + (i / vis.n) * Math.PI * 2;
         const c = vis.stones[i];

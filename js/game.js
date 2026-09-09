@@ -805,14 +805,18 @@ export class Game {
     if (f.flyT > 1.6 || f.mesh.position.length() > this.orbitR * 1.5) { this._smash(f, true); return true; }
     const sw = f.magnet ? this._sweetAngle() : null;
     for (let s = 0; s < 4; s++) {
+      const prevRad = f.mesh.position.length();
       this._bend(f.mesh.position, f.dir, dt / 4, grav, sw);
       f.mesh.position.addScaledVector(f.dir, step);
       f.mesh.rotation.x += dt * 2;
       const rad = f.mesh.position.length(), ang = Math.atan2(f.mesh.position.y, f.mesh.position.x);
       if (!f.wild) {
         for (const v of this.encounters) {
-          if (v.pending || v.target !== 1) continue;
-          if ((v.id === 'ring' || v.id === 'icering') && !f.passedRing && rad <= this.orbitR * v.radius) {
+          // An obstacle only counts once it sits where the player sees it, and only when the
+          // rock actually crosses that drawn radius (never while it is still drifting in).
+          if (v.pending || v.target !== 1 || !v.settled || !v.hitR) continue;
+          const crossed = prevRad > v.hitR && rad <= v.hitR;
+          if ((v.id === 'ring' || v.id === 'icering') && !f.passedRing && crossed) {
             f.passedRing = true;
             if (ringBlocks(v, ang)) {
               if (!v.slide) { this._bounce(f, ang); return true; }
@@ -825,7 +829,7 @@ export class Game {
               for (let s2 = 0; s2 < 6; s2++) this._trail(f);
             }
           }
-          if (v.id === 'belt' && !f.passedBelt && rad <= this.orbitR * v.radius) { f.passedBelt = true; if (beltBlocks(v, ang, f.r / (this.orbitR * v.radius))) { this._smash(f); return true; } }
+          if (v.id === 'belt' && !f.passedBelt && crossed) { f.passedBelt = true; if (beltBlocks(v, ang, f.r / v.hitR)) { this._smash(f); return true; } }
         }
       }
       const hit = this._hitTest(f.mesh.position, f.r);
