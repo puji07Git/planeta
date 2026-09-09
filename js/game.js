@@ -463,6 +463,7 @@ export class Game {
     } else this.incoming = null;
     f.dir = new THREE.Vector3(0, 0, f.zt).sub(f.mesh.position).normalize();
     f.launchAngle = Math.atan2(f.mesh.position.y, f.mesh.position.x);
+    f.launchR = f.mesh.position.length();
     const sw = this._sweetAngle();
     f.magnet = this.mods.magnet > 0 && sw !== null && Math.abs(angDist(f.launchAngle, sw)) < THREE.MathUtils.degToRad(this.mods.magnet);
     this.flying = f;
@@ -832,6 +833,7 @@ export class Game {
     const grav = gravitySources(this.encounters.filter((v) => !v.pending));
     const pos = rock.mesh.position.clone();
     const dir = new THREE.Vector3(0, 0, rock.zt).sub(pos).normalize();
+    const far = Math.max(this.orbitR * 1.5, pos.length() * 1.25);
     const dt = 1 / 60;
     const step = (FLY_SPEED * (grav.length ? 0.7 : 1) * (0.6 + 0.4 * this.Rmass) * dt) / 4;
     let n = 0;
@@ -840,7 +842,7 @@ export class Game {
       this._bend(pos, dir, dt / 4, grav, null);
       pos.addScaledVector(dir, step);
       if (i % 4 === 3) out[n++] = pos.clone();
-      if (pos.length() < this.Rvis * 0.98 || pos.length() > this.orbitR * 1.5) break;
+      if (pos.length() < this.Rvis * 0.98 || pos.length() > far) break;
     }
     return n;
   }
@@ -852,9 +854,10 @@ export class Game {
     const step = (FLY_SPEED * (grav.length ? 0.7 : 1) * (0.6 + 0.4 * this.Rmass) * dt) / 4;
     f.trailT = (f.trailT || 0) + dt;
     if (f.trailT > 0.02) { f.trailT = 0; this._trail(f); }
-    // A rock bent away from the planet is lost (captured by whatever pulled it).
+    // A rock bent away from the planet is lost (captured by whatever pulled it). Measured from
+    // where it was launched: an eccentric or breathing orbit can start well outside orbitR.
     f.flyT = (f.flyT || 0) + dt;
-    if (f.flyT > 1.6 || f.mesh.position.length() > this.orbitR * 1.5) { this._smash(f, true); return true; }
+    if (!f.wild && (f.flyT > 1.6 || f.mesh.position.length() > Math.max(this.orbitR * 1.5, (f.launchR || 0) * 1.25))) { this._smash(f, true); return true; }
     const sw = f.magnet ? this._sweetAngle() : null;
     for (let s = 0; s < 4; s++) {
       const prevRad = f.mesh.position.length();
