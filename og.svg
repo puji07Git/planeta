@@ -12,15 +12,21 @@
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
   <g transform="translate(920 330)">
-    <ellipse rx="300" ry="80" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="26" transform="rotate(-18)"/>
-    <circle r="170" fill="url(#pl)"/>
-    <circle cx="-60" cy="-40" r="28" fill="#ff8c42" opacity="0.8"/>
-    <circle cx="60" cy="60" r="38" fill="#c44bd6" opacity="0.7"/>
-    <circle cx="50" cy="-70" r="20" fill="#ffd166" opacity="0.8"/>
-    <circle cx="230" cy="-150" r="26" fill="#e6e6f0"/>
+    <path d="M-250 -110 Q-300 0 -240 110" fill="none" stroke="#ffd166" stroke-width="22" stroke-linecap="round" opacity="0.95"/>
+    <path d="M250 -110 Q300 0 240 110" fill="none" stroke="#ffd166" stroke-width="22" stroke-linecap="round" opacity="0.95"/>
+    <g transform="rotate(-22)">
+      <ellipse rx="270" ry="76" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="26"/>
+      <circle r="160" fill="url(#pl)"/>
+      <circle cx="-60" cy="-40" r="28" fill="#ff8c42" opacity="0.8"/>
+      <circle cx="60" cy="60" r="38" fill="#c44bd6" opacity="0.7"/>
+      <circle cx="50" cy="-70" r="20" fill="#ffd166" opacity="0.8"/>
+      <path d="M-270 0 A270 76 0 0 0 270 0" fill="none" stroke="#fff" stroke-opacity="0.85" stroke-width="26"/>
+    </g>
+    <circle cx="230" cy="-190" r="30" fill="#e6e6f0"/>
   </g>
-  <text x="80" y="290" font-family="Segoe UI, system-ui, sans-serif" font-size="150" font-weight="900" fill="#fff" letter-spacing="-6">PLA<tspan fill="#ffd166">NETA</tspan></text>
-  <text x="86" y="370" font-family="Segoe UI, system-ui, sans-serif" font-size="40" font-weight="600" fill="#ffffffbb">Llança roques. Fes créixer el teu planeta.</text>
-  <text x="86" y="425" font-family="Segoe UI, system-ui, sans-serif" font-size="40" font-weight="600" fill="#ffffffbb">No el deixis bolcar.</text>
-  <text x="86" y="500" font-family="Segoe UI, system-ui, sans-serif" font-size="34" font-weight="700" fill="#ffd166">🟩🟩🟨🟩🟩🟥 · Repte diari · Fins a quants km?</text>
+  <text x="80" y="230" font-family="Segoe UI, system-ui, sans-serif" font-size="140" font-weight="900" fill="#fff" letter-spacing="-6">WOBBLE</text>
+  <text x="80" y="350" font-family="Segoe UI, system-ui, sans-serif" font-size="140" font-weight="900" fill="#ffd166" letter-spacing="-6">PLANET</text>
+  <text x="86" y="430" font-family="Segoe UI, system-ui, sans-serif" font-size="40" font-weight="600" fill="#ffffffbb">Llança roques. Fes créixer el teu planeta.</text>
+  <text x="86" y="485" font-family="Segoe UI, system-ui, sans-serif" font-size="40" font-weight="600" fill="#ffffffbb">No el deixis bolcar.</text>
+  <text x="86" y="555" font-family="Segoe UI, system-ui, sans-serif" font-size="34" font-weight="700" fill="#ffd166">🟩🟩🟨🟩🟩🟥 · Repte diari · Fins a quina etapa?</text>
 </svg>

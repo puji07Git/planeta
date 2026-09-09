@@ -1,4 +1,6 @@
-# PLANETA 🪐
+# Wobble Planet 🪐
+
+Nom públic des del 2026-09-09: **Wobble Planet** (abans PLANETA). El paquet Android `com.jordipujadas.planeta`, l'adreça web `/planeta/`, els repositoris i les claus de `localStorage` (`planeta.*`) no canvien, perquè les instal·lacions existents s'actualitzin soles.
 
 Joc original d'un sol toc fet amb **three.js**. Llances roques contra un planeta que gira. Cada roca s'hi enganxa on cau i desplaça el centre de massa. Si el costat pesant (vermell) creix massa, el planeta bolca i es trenca. L'objectiu: el planeta més gran possible.
 

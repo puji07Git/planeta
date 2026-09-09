@@ -1,6 +1,6 @@
 {
-  "name": "PLANETA",
-  "short_name": "PLANETA",
+  "name": "Wobble Planet",
+  "short_name": "Wobble Planet",
   "description": "Llança roques, fes créixer el teu planeta i no el deixis bolcar. Repte diari, un sol intent.",
   "start_url": "./",
   "scope": "./",

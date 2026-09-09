@@ -424,7 +424,7 @@ async function makeCard(r) {
     return hslToHex(h, s, l);
   });
   return renderCard({
-    title: 'PLANETA',
+    title: 'WOBBLE PLANET',
     score: r.score,
     label: mode === 'daily' ? t('dailyTitle', { day: dayNumber() }) : `${t('rocks')} · ${stageName(stage)}`,
     subline: t('stageMsg', { n: stage + 1, name: stageName(stage) }),
