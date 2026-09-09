@@ -667,10 +667,20 @@ export class Game {
   // Explosive rock: bursts on impact, takes the rocks around it with it and is gone.
   _explode(f) {
     const local = this.planet.worldToLocal(f.mesh.position.clone());
+    // Blast the nearest rocks first, and stop as soon as taking one more would tip the balance
+    // the other way: a blast on the heavy side always helps, never over-corrects.
+    const near = this.rocks.filter((rock) => { const rr = (f.r + rock.r) * 2.1; return rock.local.distanceToSquared(local) <= rr * rr; })
+      .sort((a, b) => a.local.distanceToSquared(local) - b.local.distanceToSquared(local));
+    const S = new THREE.Vector3(); for (const a of this.rocks) S.addScaledVector(a.lp, a.m);
+    S.z = 0;   // the balance only counts the in-plane offset (see _recomputeCom)
+    let M = this.M, off = S.length() / M;
     const gone = [];
-    for (const rock of this.rocks) {
-      const rr = (f.r + rock.r) * 2.1;
-      if (rock.local.distanceToSquared(local) <= rr * rr) gone.push(rock);
+    for (const rock of near) {
+      const S2 = S.clone().addScaledVector(rock.lp, -rock.m), M2 = Math.max(1, M - rock.m);
+      S2.z = 0;
+      const off2 = S2.length() / M2;
+      if (gone.length && off2 > off) break;
+      gone.push(rock); S.copy(S2); M = M2; off = off2;
     }
     for (const rock of gone) this._removeRock(rock);
     if (this.mods.boomKmCost) this.M = Math.max(1, this.M * (1 - this.mods.boomKmCost));

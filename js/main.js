@@ -675,6 +675,6 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   });
 }
 
-window.PLANETA = { game, store };
+window.PLANETA = { game, store, audio, music };
 show(el.menu);
 game.idle();
