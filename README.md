@@ -10,7 +10,7 @@ Joc original d'un sol toc fet amb **three.js**. Llances roques contra un planeta
 - La barra d'**equilibri** mostra com de lluny és el centre de massa del límit. Al 100% el planeta es trenca.
 - **Perfecte**: reduir molt el desequilibri d'un sol cop. Els perfectes encadenats fan combo.
 - El planeta creix de veritat (radi ∝ ∛massa): a 25 roques guanya **atmosfera**, a 60 **anells**, a 100 **lluna**.
-- Cada partida acaba amb un diàmetre en km, pensat per ser compartit.
+- Cada partida acaba amb l'etapa assolida (Asteroide → Univers i més enllà), pensada per ser compartida. El diàmetre en km es va treure el 2026-09-09 perquè no volia dir res.
 
 ## Per què pot ser viral
 

@@ -1,7 +1,7 @@
 // PLANETA: UI, modes, sharing and persistence glue.
 import { Game } from './game.js';
 import { AudioEngine, haptic } from './audio.js';
-import { t, setLang, detectLang, getLang, LANGS, fmtKm } from './i18n.js';
+import { t, setLang, detectLang, getLang, LANGS } from './i18n.js';
 import { THEMES, themeById, rockHSL, hslToHex, stageIndex, stageStart, STAGE_SCORES, UNIVERSE_SPAN, UNIVERSES, universeFor, universeLabel, themeUnlocked } from './themes.js';
 
 // Stage names: nine, then the named universes (Aeon, Kaal… and Aeon II, Kaal II… on repeat).
@@ -22,7 +22,7 @@ import { Music } from './music.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
-  bg: $('bg'), hud: $('hud'), score: $('score'), size: $('size'), combo: $('combo'), target: $('target'),
+  bg: $('bg'), hud: $('hud'), score: $('score'), combo: $('combo'), target: $('target'),
   gauge: $('gauge'), gaugeFill: $('gauge-fill'), playHint: $('play-hint'),
   menu: $('menu'), gameover: $('gameover'), themes: $('themes'), stats: $('stats'),
   toast: $('toast'), milestone: $('milestone'), challenge: $('challenge'),
@@ -85,7 +85,6 @@ const game = new Game($('c'), {
     if (score > store.best) store.best = score;
     updateBoostChip();
     el.score.textContent = score;
-    el.size.textContent = `${fmtKm(sizeKm)} km`;
     el.score.classList.remove('pop'); void el.score.offsetWidth; el.score.classList.add('pop');
     setGauge(q);
     if (cracked) { audio.crack(); haptic([60, 40, 120]); el.playHint.classList.add('hidden'); return; }
@@ -315,7 +314,6 @@ function startGame(m) {
     game.reset({ startScore: stageStart(startStage) });
   }
   el.score.textContent = String(game.score);
-  el.size.textContent = `${fmtKm(game.sizeKm)} km`;
   el.combo.classList.remove('show');
   el.encounter.classList.add('hidden'); el.encounter.innerHTML = '';
   el.rocktag.classList.add('hidden');
@@ -376,7 +374,7 @@ function showGameOver(r) {
   el.goTitle.textContent = mode === 'daily' ? t('dailyTitle', { day: dayNumber() }) : t('gameover');
   el.goRecord.classList.toggle('hidden', !isRecord);
   el.goScore.textContent = r.score;
-  el.goKm.textContent = `${t('sizeLabel')}: ${fmtKm(r.sizeKm)} km · ${stageName(stageIndex(r.score))}`;
+  el.goKm.textContent = t('stageMsg', { n: stageIndex(r.score) + 1, name: stageName(stageIndex(r.score)) });
   const reached = Math.min(stageIndex(r.score), maxStartStage());
   const again = $('btn-restart-stage');
   again.classList.toggle('hidden', mode === 'daily' || reached < 1);
@@ -410,12 +408,12 @@ function showGameOver(r) {
 function buildShare(r) {
   const grid = emojiGrid(r.results);
   const footer = t('shareFooter', { perfects: r.perfects, combo: r.maxCombo });
-  const km = fmtKm(r.sizeKm);
+  const stage = stageName(stageIndex(r.score));
   if (mode === 'daily') {
-    const head = t('shareDaily', { day: dayNumber(), score: r.score, km });
+    const head = t('shareDaily', { day: dayNumber(), score: r.score, stage });
     return { text: `${head}\n${grid}\n${footer} · 🔥 ${store.daily.streak}`, url: baseUrl() };
   }
-  const head = t('shareEndless', { score: r.score, km });
+  const head = t('shareEndless', { score: r.score, stage });
   return { text: `${head}\n${grid}\n${footer}`, url: `${baseUrl()}?beat=${r.score}` };
 }
 
@@ -429,7 +427,7 @@ async function makeCard(r) {
     title: 'PLANETA',
     score: r.score,
     label: mode === 'daily' ? t('dailyTitle', { day: dayNumber() }) : `${t('rocks')} · ${stageName(stage)}`,
-    subline: `${fmtKm(r.sizeKm)} km`,
+    subline: t('stageMsg', { n: stage + 1, name: stageName(stage) }),
     footer: t('shareFooter', { perfects: r.perfects, combo: r.maxCombo }),
     grid: emojiGrid(r.results, { cols: 10, maxRows: 4 }),
     colors: theme.zones[Math.min(stage, 3)],
@@ -600,7 +598,6 @@ function renderStats() {
   const sp = store.special;
   const rows = [
     ['statBest', store.best],
-    ['statBiggest', `${fmtKm(store.biggest || 0)} km`],
     ['statGames', games],
     ['statBlocks', blocks],
     ['statPerfect', blocks ? Math.round((perf / blocks) * 100) + '%' : '0%'],
