@@ -156,7 +156,7 @@ export function defaultMods() {
 // Boosts: a random one may arrive when a sector is cleared; benefit only, lasts CARD_ROCKS rocks.
 export const CARDS = [
   { id: 'slow',     icon: '🐢', apply: (m) => { m.spin *= 0.75; } },
-  { id: 'big',      icon: '🪨', apply: (m) => { m.size *= 1.3; } },
+  { id: 'big',      icon: '🪨', apply: (m) => { m.size *= 1.3; m.mass /= 1.3 ** 3; } },   // bigger but no heavier
   { id: 'magnet',   icon: '🧲', apply: (m) => { m.magnet += 15; } },
   { id: 'life',     icon: '💚', apply: (m) => { m.lives += 1; } },
   { id: 'double',   icon: '♊', apply: (m) => { m.doubleOrbit = true; } },
@@ -188,7 +188,7 @@ export function offerCards(rng, chosen) {
 export function applyUniverse(mods, trait) {
   if (trait === 'twins') mods.doubleOrbit = true;
   else if (trait === 'rich') mods.specialRate *= 2;
-  else if (trait === 'lead') mods.mass *= 1.4;
+  else if (trait === 'spin') mods.spin *= 1.3;
   else if (trait === 'tremor') mods.sweetWobble += 10;
   else if (trait === 'light') { mods.size *= 0.85; mods.orbit *= 1.15; }
   return mods;

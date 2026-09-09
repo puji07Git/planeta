@@ -230,7 +230,9 @@ export class Game {
   // Difficulty never stops growing: fast at first, then a slow but endless climb.
   _spin(i) { return (0.35 + 1.15 * (1 - Math.exp(-i / 90)) + i * 0.0025) * this.mods.spin; }
   _orbitSpeed(i) { return -(0.95 + 1.45 * (1 - Math.exp(-i / 110)) + i * 0.002) * (this.jitter ? 0.88 + this.rng() * 0.24 : 1) * this.mods.orbit; }
-  _limit(i) { return Math.max(0.05, 0.11 - i * 0.0004) * this.mods.limit; }
+  // Never below what the largest normal rock shifts on its own (~0.085·Rmass): a rock placed on
+  // the green point of a balanced planet must always survive.
+  _limit(i) { return Math.max(0.095, 0.13 - i * 0.0004) * this.mods.limit; }
 
   resize() {
     const w = window.innerWidth, h = window.innerHeight;
@@ -420,7 +422,7 @@ export class Game {
   _makeRock(i, kind) {
     let size = this.mods.size, massMul = this.mods.mass;
     if (kind === 'gold') size *= this.mods.goldSize * 0.85;
-    if (kind === 'heavy') { size *= 0.9; massMul *= 2; }
+    if (kind === 'heavy') { size *= 0.75; massMul *= 2; }   // twice as dense, but its total pull stays within the limit
     if (kind === 'comet') size *= 0.8;
     const r = this.Rmass * (0.2 + this.rng() * 0.2) * size;
     const mesh = this._rockMesh(i, r, kind);
@@ -1050,7 +1052,8 @@ export class Game {
 
     // Flying rocks: the launched one and any wild ones from a meteor shower.
     if (this.flying) this._flyStep(this.flying, dt);
-    for (let i = this.wild.length - 1; i >= 0; i--) if (this._flyStep(this.wild[i], dt)) this.wild.splice(i, 1);
+    // (a wild rock that breaks the planet empties `this.wild` from inside `_flyStep`)
+    for (let i = this.wild.length - 1; i >= 0 && i < this.wild.length; i--) if (this._flyStep(this.wild[i], dt)) this.wild.splice(i, 1);
 
     // Predicted path: with the Vision boost, or whenever something is bending the rocks.
     const bending = this.encounters.some((v) => v.gravity && !v.pending && v.target === 1 && v.k > 0.3);

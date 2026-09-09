@@ -190,7 +190,7 @@ export const UNIVERSES = [
   { id: 'kaal',   name: 'Kaal',   hue: 0.48, sat: 0.7, trait: 'twins' },    // two rocks orbit at once
   { id: 'vesper', name: 'Vesper', hue: 0.08, sat: 0.8, trait: 'blink' },    // the green point blinks
   { id: 'ilun',   name: 'Ilun',   hue: 0.36, sat: 0.6, trait: 'rich' },     // special rocks twice as often
-  { id: 'sarme',  name: 'Sarme',  hue: 0.98, sat: 0.8, trait: 'lead' },     // rocks weigh more
+  { id: 'sarme',  name: 'Sarme',  hue: 0.98, sat: 0.8, trait: 'spin' },     // the planet spins faster
   { id: 'oriel',  name: 'Oriel',  hue: 0.14, sat: 0.9, trait: 'tremor' },   // the green point trembles
   { id: 'nuvo',   name: 'Nuvo',   hue: 0.6,  sat: 0.7, trait: 'wind' },     // the orbit turns around every 12 rocks
   { id: 'zairo',  name: 'Zairo',  hue: 0.0,  sat: 0.0, trait: 'light' },    // smaller, quicker rocks
