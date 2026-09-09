@@ -2,13 +2,18 @@
 import { Game } from './game.js';
 import { AudioEngine, haptic } from './audio.js';
 import { t, setLang, detectLang, getLang, LANGS, fmtKm } from './i18n.js';
-import { THEMES, themeById, rockHSL, hslToHex, stageIndex, STAGE_SCORES, UNIVERSE_SPAN, themeUnlocked } from './themes.js';
+import { THEMES, themeById, rockHSL, hslToHex, stageIndex, stageStart, STAGE_SCORES, UNIVERSE_SPAN, UNIVERSES, universeFor, universeLabel, themeUnlocked } from './themes.js';
 
-// Stage names: nine, then "Univers II, III…".
+// Stage names: nine, then the named universes (Aeon, Kaal… and Aeon II, Kaal II… on repeat).
 function stageName(i) {
   if (i < 9) return t('stage' + (i + 1));
-  return `${t('stage9')} ${['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][i - 7] || (i - 7)}`;
+  return `${t('stage9')} ${universeLabel(universeFor(i))}`;
 }
+// What a universe does, as shown in notices and the guide.
+function universeTrait(i) { const u = universeFor(i); return u ? t('uniF_' + u.trait) : ''; }
+// The furthest stage the player may start from (the one their record reached).
+function maxStartStage() { return stageIndex(store.best); }
+function chosenStartStage() { return Math.min(store.startStage || 0, maxStartStage()); }
 import { store } from './storage.js';
 import { rngFromString, todayKey, dayNumber, msUntilTomorrow, formatCountdown } from './rng.js';
 import { emojiGrid, shareText, shareFile, renderCard, downloadBlob, baseUrl } from './share.js';
@@ -71,6 +76,7 @@ const game = new Game($('c'), {
     if (stage === 0) { try { localStorage.setItem('planeta.look', JSON.stringify({ bg: [colors[0], colors[1]], accent: theme.accent, accent2: theme.accent2 })); } catch { /* ignore */ } }
     if (stageChanged && stage > 0 && game.state === 'playing') {
       showMilestone(t('stageMsg', { n: stage + 1, name: stageName(stage) }));
+      if (stage >= 9) showMilestone(universeTrait(stage));
       audio.milestone(true);
       haptic([20, 40, 20, 40, 40]);
     }
@@ -260,8 +266,25 @@ function setGauge(q) {
   el.gauge.classList.toggle('danger', q >= 0.8);
 }
 
+// Start selector: every stage the record has reached, from the asteroid to the last universe.
+function renderStartRow() {
+  const row = $('start-row');
+  const max = maxStartStage(), sel = chosenStartStage();
+  row.classList.toggle('hidden', max < 1);
+  if (max < 1) return;
+  let h = `<small>${t('startFrom')}</small><div class="chips">`;
+  for (let i = 0; i <= max; i++) {
+    h += `<button class="chip${i === sel ? ' on' : ''}" data-stage="${i}">${i < 9 ? stageName(i) : universeLabel(universeFor(i))}</button>`;
+  }
+  row.innerHTML = h + '</div>';
+  row.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => { audio.click(); store.startStage = +b.dataset.stage; renderStartRow(); }));
+  const on = row.querySelector('.chip.on');
+  if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+
 function refreshMenu() {
   el.menuBest.textContent = store.best;
+  renderStartRow();
   const d = store.daily;
   const today = todayKey();
   if (d.date === today) {
@@ -283,14 +306,15 @@ function startGame(m) {
   challengeBeaten = false;
   launches = 0;
   audio.ensure();
+  const startStage = mode === 'daily' ? 0 : chosenStartStage();
   if (mode === 'daily') {
     const seed = 'planeta-' + todayKey();
     const rng = rngFromString(seed);
     game.reset({ rng, hueOffset: Math.floor(rng() * 360), jitter: true });
   } else {
-    game.reset();
+    game.reset({ startScore: stageStart(startStage) });
   }
-  el.score.textContent = '0';
+  el.score.textContent = String(game.score);
   el.size.textContent = `${fmtKm(game.sizeKm)} km`;
   el.combo.classList.remove('show');
   el.encounter.classList.add('hidden'); el.encounter.innerHTML = '';
@@ -309,7 +333,11 @@ function startGame(m) {
   game.start();
   musicScene('play');
   milestoneQueue.length = 0;
-  setTimeout(() => { if (game.state === 'playing') showMilestone(t('stageMsg', { n: 1, name: t('stage1') })); }, 400);
+  setTimeout(() => {
+    if (game.state !== 'playing') return;
+    showMilestone(t('stageMsg', { n: startStage + 1, name: stageName(startStage) }));
+    if (startStage >= 9) showMilestone(universeTrait(startStage));
+  }, 400);
 }
 
 // ---------- Pause ----------
@@ -349,6 +377,11 @@ function showGameOver(r) {
   el.goRecord.classList.toggle('hidden', !isRecord);
   el.goScore.textContent = r.score;
   el.goKm.textContent = `${t('sizeLabel')}: ${fmtKm(r.sizeKm)} km · ${stageName(stageIndex(r.score))}`;
+  const reached = Math.min(stageIndex(r.score), maxStartStage());
+  const again = $('btn-restart-stage');
+  again.classList.toggle('hidden', mode === 'daily' || reached < 1);
+  again.textContent = t('restartFrom', { name: stageName(reached) });
+  again.dataset.stage = reached;
   el.goBest.textContent = store.best;
   el.goPerfects.textContent = r.perfects;
   el.goCombo.textContent = r.maxCombo;
@@ -431,6 +464,7 @@ $('btn-play').addEventListener('click', () => { audio.click(); startGame('endles
 el.btnDaily.addEventListener('click', () => { if (el.btnDaily.disabled) return; audio.click(); startGame('daily'); });
 $('btn-retry').addEventListener('click', () => { audio.click(); startGame(mode === 'daily' && store.daily.date === todayKey() ? 'endless' : mode); });
 $('btn-home').addEventListener('click', () => { audio.click(); goHome(); });
+$('btn-restart-stage').addEventListener('click', (e) => { audio.click(); store.startStage = +e.currentTarget.dataset.stage; startGame('endless'); });
 $('btn-themes').addEventListener('click', () => { audio.click(); renderThemes(); show(el.themes); });
 $('btn-stats').addEventListener('click', () => { audio.click(); renderStats(); show(el.stats); });
 $('btn-help').addEventListener('click', () => { if (game.state === 'playing') return; audio.click(); renderGuide(); show($('guide')); });
@@ -466,6 +500,9 @@ function renderGuide() {
   h += `<h3>${t('guideStages')}</h3>`;
   for (let i = 0; i < STAGE_SCORES.length; i++) h += `<div class="g" style="grid-template-columns:1fr"><small><b>${t('stageMsg', { n: i + 1, name: stageName(i) })}</b> · ${STAGE_SCORES[i]} ${t('rocks')}<br>${t('stageF' + (i + 1))}</small></div>`;
   h += `<div class="g" style="grid-template-columns:1fr"><small>${t('guideStagesHint', { n: UNIVERSE_SPAN })}</small></div>`;
+  h += `<h3>${t('guideUniverses')}</h3>`;
+  UNIVERSES.forEach((u, k) => { h += `<div class="g" style="grid-template-columns:1fr"><small><b>${t('stage9')} ${u.name}</b> · ${stageStart(9 + k)} ${t('rocks')}<br>${t('uniF_' + u.trait)}</small></div>`; });
+  h += `<div class="g" style="grid-template-columns:1fr"><small>${t('guideUniversesHint')}</small></div>`;
   h += `<h3>${t('guideRocks')}</h3>`;
   for (const k of ['heavy', 'ice', 'gold', 'boom', 'comet']) h += row(rockSvg(k), t('rock_' + k).replace(/^\S+\s/, '').split(':')[0], t('g_' + k));
   h += `<h3>${t('guideEnc')}</h3>`;

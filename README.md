@@ -89,3 +89,9 @@ Toc, clic o **espai** per llançar. **Enter** per tornar-hi a la pantalla final.
 ## Temes
 
 Deu temes. Es desbloquegen en arribar per primer cop a una etapa (Lava 25, Gel 60, Neó 100, Terra 150, Or 250, Supernova 400, Galàxia 600, Univers 900) i Aurora amb 7 dies seguits de repte diari. Els desbloquejats amb llindars antics es mantenen. El tema no canvia sol en desbloquejar-lo: només apareix l'avís i queda disponible a la llista. L'últim fons i colors es desen (`planeta.look`) i s'apliquen amb un guió inicial abans del primer pintat perquè el tema triat no aparegui després del de per defecte.
+
+## Universos i sortida avançada (v9)
+
+Després de l'Univers (900 roques) cada 400 roques comença un univers nou amb nom inventat, color i un tret propi que dura tot l'univers (`UNIVERSES` a `js/themes.js`, `applyUniverse` a `js/journey.js`, `_applyUniverse`/`_baseMods` a `js/game.js`): Aeon (l'òrbita respira), Kaal (dues roques orbiten), Vesper (el punt verd parpelleja), Ilun (roques especials ×2), Sarme (roques més pesades), Oriel (el punt verd tremola), Nuvo (l'òrbita canvia de sentit cada 12 roques), Zairo (roques més petites i ràpides). En acabar la llista tornen com Aeon II, Kaal II… Els trets s'apliquen sota qualsevol millora i es reconstrueixen en canviar d'univers. La guia els llista.
+
+Sortida avançada: al menú, sota JUGA, una fila de xips amb totes les etapes que el rècord ha assolit (`store.startStage`, `renderStartRow` a `js/main.js`); la partida comença amb la puntuació de l'etapa i un planeta prefabricat de la mida que té una partida real a aquell punt (`_prefill(n)` a `js/game.js`: massa objectiu `(1 + n/250)^3`, només les ~80 roques més recents es construeixen). A la pantalla de fi de partida, «Torna a sortir des de {etapa}» reinicia des de l'última etapa assolida. El repte diari sempre surt de zero. Compta per a rècord, temes i estadístiques.

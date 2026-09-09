@@ -183,6 +183,26 @@ export function stageIndex(score) {
 
 export function stageStart(i) { return i < 8 ? STAGE_SCORES[i] : STAGE_SCORES[8] + (i - 8) * UNIVERSE_SPAN; }
 
+// Universes after the first one (stage index 9 onward): an invented name, a colour and a trait
+// of their own that lasts the whole universe. They repeat as "II", "III"… once the list ends.
+export const UNIVERSES = [
+  { id: 'aeon',   name: 'Aeon',   hue: 0.75, sat: 0.7, trait: 'breath' },   // the orbit breathes in and out
+  { id: 'kaal',   name: 'Kaal',   hue: 0.48, sat: 0.7, trait: 'twins' },    // two rocks orbit at once
+  { id: 'vesper', name: 'Vesper', hue: 0.08, sat: 0.8, trait: 'blink' },    // the green point blinks
+  { id: 'ilun',   name: 'Ilun',   hue: 0.36, sat: 0.6, trait: 'rich' },     // special rocks twice as often
+  { id: 'sarme',  name: 'Sarme',  hue: 0.98, sat: 0.8, trait: 'lead' },     // rocks weigh more
+  { id: 'oriel',  name: 'Oriel',  hue: 0.14, sat: 0.9, trait: 'tremor' },   // the green point trembles
+  { id: 'nuvo',   name: 'Nuvo',   hue: 0.6,  sat: 0.7, trait: 'wind' },     // the orbit turns around every 12 rocks
+  { id: 'zairo',  name: 'Zairo',  hue: 0.0,  sat: 0.0, trait: 'light' },    // smaller, quicker rocks
+];
+export function universeFor(stage) {
+  if (stage < 9) return null;
+  const u = stage - 9;
+  return { ...UNIVERSES[u % UNIVERSES.length], cycle: Math.floor(u / UNIVERSES.length), n: u + 2 };
+}
+const ROMAN = ['', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+export function universeLabel(u) { return u.cycle ? `${u.name} ${ROMAN[u.cycle] || u.cycle + 1}` : u.name; }
+
 // Sky colours beyond the theme's four zones: star, blue giant, supernova, galaxy, universes.
 const LATE_ZONES = [
   ['#3a2410', '#0d0703'],

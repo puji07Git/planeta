@@ -1,8 +1,8 @@
 // PLANETA core: a spinning planet you grow by launching rocks at it. Every rock shifts the
 // centre of mass; let the heavy side grow too much and the planet tears itself apart.
 import * as THREE from 'three';
-import { rockHSL, nebulaFor, stageIndex } from './themes.js';
-import { Journey, rollRockKind, defaultMods, applyCard, CARD_ROCKS, randomBoost, BOOST_CHANCE } from './journey.js';
+import { rockHSL, nebulaFor, stageIndex, universeFor } from './themes.js';
+import { Journey, rollRockKind, defaultMods, applyCard, applyUniverse, CARD_ROCKS, randomBoost, BOOST_CHANCE } from './journey.js';
 import { createEncounter, updateEncounter, disposeEncounter, gravitySources, ringBlocks, ringSlideTo, beltBlocks, angDist } from './encounters.js';
 
 const R0 = 1;              // core radius
@@ -301,7 +301,7 @@ export class Game {
   }
 
   // ---------- Lifecycle ----------
-  reset({ rng = Math.random, hueOffset = 0, jitter = false } = {}) {
+  reset({ rng = Math.random, hueOffset = 0, jitter = false, startScore = 0 } = {}) {
     this.rocks.forEach((r) => this._dispose(r.mesh));
     this.fx.forEach((f) => { if (f.kind !== 'pop') this._dispose(f.mesh); });
     if (this.incoming) this._dispose(this.incoming.mesh);
@@ -317,6 +317,7 @@ export class Game {
     this.atmoMat.opacity = 0; this.ringMat.opacity = 0; this.moon.visible = false;
     this.heavy.material.opacity = 0; this.sweet.material.opacity = 0;
     this.stage = 0; this.lastStage = -1;
+    this.uni = null;
     this.mods = defaultMods(); this.chosenCards = []; this.lives = 0; this.compressCount = 0; this.pendingCards = null;
     this.cardId = null; this.cardUntil = 0; this.lastCardOffer = 0;
     this.journey.reset(this.rng);
@@ -329,9 +330,58 @@ export class Game {
     this.lastSpecial = false; this.cometDue = 0; this.predict.visible = false;
     this.orbitTheta = this.rng() * Math.PI * 2;
     this.spawnTimer = 0; this.overTimer = 0; this.overFired = false; this.shake = 0;
+    if (startScore > 0) this._prefill(startScore);
     this._spawn();
     this._updateSky(true);
     this._fitCamera(true);
+    if (startScore > 0) for (const ev of this.journey.onRock(this.score)) this._journeyEvent(ev);
+  }
+
+  // A run that starts at a later stage: build a balanced planet the size a real run has after
+  // `n` rocks (explosions keep it far smaller than n rocks would add up to). The older rocks are
+  // long absorbed, so only the most recent ones are built; the rest is mass in the core.
+  _prefill(n) {
+    const target = Math.pow(1 + n / 250, 3);
+    this.M = Math.max(1, target / 10);
+    let i = Math.max(0, n - 120);
+    while (this.M < target && i < n) {
+      const r = this.Rmass * (0.2 + this.rng() * 0.2);
+      const mesh = this._rockMesh(i, r, 'normal');
+      const a = this.rng() * Math.PI * 2;
+      const pos = new THREE.Vector3(Math.cos(a), Math.sin(a), 0).multiplyScalar(Math.max(this.Rvis, this.Rmass * 3) + r * 2);
+      pos.z = (this.rng() * 2 - 1) * 0.6 * this.Rmass;
+      this._settle(pos, r, 400);
+      this.planet.add(mesh);
+      mesh.position.copy(pos);
+      this.rocks.push({ mesh, local: pos.clone(), lp: pos.clone(), r, m: r * r * r, index: i, kind: 'normal' });
+      this.M += r * r * r;
+      if (i % 6 === 5) this._compact();
+      i++;
+    }
+    this._compact();
+    this._recomputeCom();
+    for (const r of this.rocks) r.lp.sub(this.com);   // start perfectly balanced
+    this._recomputeCom();
+    this.score = n; this.q = 0;
+  }
+
+  // Base modifiers: the defaults plus the trait of the universe we are in.
+  _baseMods() {
+    const m = defaultMods();
+    if (this.uni) applyUniverse(m, this.uni.trait);
+    return m;
+  }
+
+  // Entering (or leaving) a universe: rebuild the modifiers under whatever boost is active.
+  _applyUniverse(stage) {
+    const u = universeFor(stage);
+    if ((u && u.id) === (this.uni && this.uni.id) && (u ? u.cycle : 0) === (this.uni ? this.uni.cycle : 0)) return;
+    this.uni = u;
+    this.mods = this._baseMods();
+    if (this.cardId) { applyCard(this.mods, this.cardId); this.mods.lives = 0; }
+    if (this.mods.doubleOrbit && !this.incoming2 && this.incoming) this.incoming2 = this._makeRock(this.score, 'normal');
+    if (!this.mods.doubleOrbit && this.incoming2) { this._dispose(this.incoming2.mesh); this.incoming2 = null; }
+    this._placeIncoming();
   }
 
   start() {
@@ -383,7 +433,8 @@ export class Game {
   }
 
   _orbitPoint(theta, out) {
-    const r = this.orbitR * (1 + this.orbitEcc * Math.cos(theta - this.orbitPhi));
+    const breath = this.uni && this.uni.trait === 'breath' ? 1 + 0.16 * Math.sin(this.time * 1.1) : 1;
+    const r = this.orbitR * (1 + this.orbitEcc * Math.cos(theta - this.orbitPhi)) * breath;
     return out.set(Math.cos(theta) * r, Math.sin(theta) * r, 0);
   }
 
@@ -437,9 +488,9 @@ export class Game {
 
   // Let a rock roll inward until it wedges against the core or other rocks, so the planet
   // packs into a ball instead of growing spikes.
-  _settle(pos, r) {
+  _settle(pos, r, steps = 80) {
     const step = r * 0.25;
-    for (let k = 0; k < 80; k++) {
+    for (let k = 0; k < steps; k++) {
       const d0 = pos.length();
       if (d0 < 1e-3) break;
       _v.copy(pos).multiplyScalar(-step / d0);
@@ -528,6 +579,7 @@ export class Game {
     }
     if (f.kind === 'gold' || f.kind === 'comet') this.M += f.m;   // grows the planet twice as much
     if (!f.wild) this.score++;
+    if (!f.wild && this.uni && this.uni.trait === 'wind' && this.score % 12 === 0) { this.orbitDir *= -1; this.hooks.onWind && this.hooks.onWind(); }
     this.q = this.com.length() / (this._limit(this.score) * this.Rmass);
     if (this.mods.compress && !f.wild && this.score % 10 === 0) {
       const k = Math.pow(0.9, this.mods.compress);
@@ -576,7 +628,7 @@ export class Game {
   // danger (at most once every 20 rocks, never while a card is still active).
   _afterRock() {
     if (this.cardUntil && this.score >= this.cardUntil) {
-      this.cardUntil = 0; this.cardId = null; this.mods = defaultMods();
+      this.cardUntil = 0; this.cardId = null; this.mods = this._baseMods();
       this._placeIncoming();
       this.hooks.onCardExpired && this.hooks.onCardExpired();
     }
@@ -585,7 +637,7 @@ export class Game {
   _grantBoost() {
     const c = randomBoost(this.rng, this.cardId || this.chosenCards[this.chosenCards.length - 1]);
     if (!c) return;
-    this.mods = defaultMods();
+    this.mods = this._baseMods();
     applyCard(this.mods, c.id);
     if (this.mods.lives) { this.lives += this.mods.lives; this.mods.lives = 0; }
     this.cardId = c.id; this.cardUntil = this.score + CARD_ROCKS;
@@ -892,6 +944,7 @@ export class Game {
     this.hooks.onSky && this.hooks.onSky(colors, stage, changed);
     this.lastStage = stage;
     this.stage = stage;
+    this._applyUniverse(stage);
     if (stage !== this.stageLook) this._applyStageLook(stage, !force && this.state === 'playing');
   }
 
@@ -922,7 +975,12 @@ export class Game {
       case 8: core.color.set(0xd8c8ff); core.emissive.set(0x9b7bff); core.emissiveIntensity = 0.9; this.atmoMat.color.set(0x9b7bff); this.atmoTarget = 0.45; this.atmoScale = 1.8; break;
       default: break;
     }
-    if (stage >= 8) { const hue = ((stage - 8) * 0.17) % 1; this.atmoMat.color.setHSL(0.72 + hue, 0.7, 0.6); core.emissive.setHSL(0.72 + hue, 0.7, 0.55); }
+    if (stage >= 8) {
+      const u = universeFor(stage);
+      const hue = u ? u.hue : 0.72, sat = u ? u.sat : 0.7;
+      this.atmoMat.color.setHSL(hue, sat, 0.6); core.emissive.setHSL(hue, sat, 0.55);
+      this.field.material.color.setHSL(hue, sat * 0.8, 0.8);
+    }
     this.stageEmissive = core.emissiveIntensity;   // the balance glow is added on top each frame
     core.needsUpdate = true;
     for (const r of this.rocks) this._colorize(r.mesh.material, r.index);
@@ -1041,6 +1099,7 @@ export class Game {
         this.sweet.position.copy(sdir).multiplyScalar(-this.Rvis * 1.08);
         this.sweet.scale.setScalar(this.Rvis * 0.6 * (2 - pulse));
         this.sweet.material.opacity = (q > 0.08 ? 0.95 : 0.7) * (playing ? 1 : 0) * (1 - this.glare);
+        if (this.uni && this.uni.trait === 'blink' && Math.sin(this.time * 2.4) < -0.25) this.sweet.material.opacity *= 0.08;
         this.heavy.material.opacity *= (1 - this.glare);
         if (playing && this.incoming && this.incoming.kind === 'boom') {
           // Explosives go to the heavy side: make the red point the obvious target.

@@ -184,6 +184,16 @@ export function offerCards(rng, chosen) {
   return out;
 }
 
+// Lasting traits of a universe, applied under any boost.
+export function applyUniverse(mods, trait) {
+  if (trait === 'twins') mods.doubleOrbit = true;
+  else if (trait === 'rich') mods.specialRate *= 2;
+  else if (trait === 'lead') mods.mass *= 1.4;
+  else if (trait === 'tremor') mods.sweetWobble += 10;
+  else if (trait === 'light') { mods.size *= 0.85; mods.orbit *= 1.15; }
+  return mods;
+}
+
 export function applyCard(mods, id) {
   const c = CARDS.find((x) => x.id === id);
   if (c) c.apply(mods);

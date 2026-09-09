@@ -39,6 +39,8 @@ export const store = {
   set special(v) { write('special', v); },
   get encountersDone() { return read('encountersDone', 0); },
   set encountersDone(v) { write('encountersDone', v); },
+  get startStage() { return read('startStage', 0); },
+  set startStage(v) { write('startStage', v); },
   get cardsPicked() { return read('cardsPicked', 0); },
   set cardsPicked(v) { write('cardsPicked', v); },
   // { date, score, result:[...], streak, lastDate, best }

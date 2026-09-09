@@ -342,3 +342,11 @@ button[disabled] { opacity: 0.55; cursor: default; filter: grayscale(0.4); }
   background: rgba(0,0,0,0.45); font-size: 12px; font-weight: 800; letter-spacing: 0.03em; pointer-events: none;
   box-shadow: 0 0 14px rgba(255,255,255,0.25); animation: pulse 1.6s ease-in-out infinite alternate;
 }
+
+/* v8: start selector */
+.start-row { text-align: center; }
+.start-row small { display: block; font-size: 12px; color: var(--ink-dim); font-weight: 600; margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+.start-row .chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 4px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.start-row .chips::-webkit-scrollbar { display: none; }
+.start-row .chip { flex: 0 0 auto; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: var(--ink); font-size: 13px; font-weight: 700; }
+.start-row .chip.on { background: var(--accent); border-color: var(--accent); color: #0b0d24; }
