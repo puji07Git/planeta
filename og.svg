@@ -11,7 +11,7 @@
     </radialGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
-  <g transform="translate(920 330)">
+  <g transform="translate(975 320) scale(0.82)">
     <path d="M-250 -110 Q-300 0 -240 110" fill="none" stroke="#ffd166" stroke-width="22" stroke-linecap="round" opacity="0.95"/>
     <path d="M250 -110 Q300 0 240 110" fill="none" stroke="#ffd166" stroke-width="22" stroke-linecap="round" opacity="0.95"/>
     <g transform="rotate(-22)">
@@ -24,9 +24,10 @@
     </g>
     <circle cx="230" cy="-190" r="30" fill="#e6e6f0"/>
   </g>
-  <text x="80" y="230" font-family="Segoe UI, system-ui, sans-serif" font-size="140" font-weight="900" fill="#fff" letter-spacing="-6">WOBBLE</text>
-  <text x="80" y="350" font-family="Segoe UI, system-ui, sans-serif" font-size="140" font-weight="900" fill="#ffd166" letter-spacing="-6">PLANET</text>
-  <text x="86" y="430" font-family="Segoe UI, system-ui, sans-serif" font-size="40" font-weight="600" fill="#ffffffbb">Llança roques. Fes créixer el teu planeta.</text>
-  <text x="86" y="485" font-family="Segoe UI, system-ui, sans-serif" font-size="40" font-weight="600" fill="#ffffffbb">No el deixis bolcar.</text>
-  <text x="86" y="555" font-family="Segoe UI, system-ui, sans-serif" font-size="34" font-weight="700" fill="#ffd166">🟩🟩🟨🟩🟩🟥 · Repte diari · Fins a quina etapa?</text>
+  <text x="80" y="200" font-family="Segoe UI, system-ui, sans-serif" font-size="130" font-weight="900" fill="#fff" letter-spacing="-6">WOBBLE</text>
+  <text x="80" y="315" font-family="Segoe UI, system-ui, sans-serif" font-size="130" font-weight="900" fill="#ffd166" letter-spacing="-6">PLANET</text>
+  <text x="86" y="395" font-family="Segoe UI, system-ui, sans-serif" font-size="38" font-weight="600" fill="#ffffffbb">Llança roques.</text>
+  <text x="86" y="445" font-family="Segoe UI, system-ui, sans-serif" font-size="38" font-weight="600" fill="#ffffffbb">Fes créixer el teu planeta.</text>
+  <text x="86" y="495" font-family="Segoe UI, system-ui, sans-serif" font-size="38" font-weight="600" fill="#ffffffbb">No el deixis bolcar.</text>
+  <text x="86" y="565" font-family="Segoe UI, system-ui, sans-serif" font-size="32" font-weight="700" fill="#ffd166">🟩🟩🟨🟩🟩🟥 · Repte diari</text>
 </svg>
